@@ -1,6 +1,9 @@
 # MilkyWay
 MilkyWay is utility for manging servers not through SSH, but through sending commands to groups of servers. To add an extra security it is suggested to use post-quantum cryptography for verifying that message originates from trusted source.
 
+## Whole-project documentation
+The diagram on how current vision of architecture looks like is located in [doc/](doc/) folder.
+
 # Broker
 The broker (would be) implemented in milkywaysrvd. It advertises itself on the network enabling peers to communicate with each one.
 
