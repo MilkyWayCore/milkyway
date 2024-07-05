@@ -1,0 +1,13 @@
+[package]
+name = "libmilkyway"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.7", features = ["derive"] }
+pqcrypto = "0.17.0"
+pqcrypto-falcon = "0.3.0"
+aes-gcm = "0.10.3"
+rand = "0.8.5"
+# Internal project dependencies
+libmilkyway_derive = { path = "../libmilkyway_derive"}
