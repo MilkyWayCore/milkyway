@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::hash::Hash;
 use crate::serialization::deserializable::Deserializable;
 use crate::serialization::error::SerializationError;
 use crate::serialization::error::SerializationError::{InvalidDataError, LengthError};
@@ -120,9 +122,51 @@ impl Deserializable for bool{
     }
 }
 
+impl<K: Serializable + Clone, V: Serializable + Clone> Serializable for HashMap<K, V> {
+    fn serialize(&self) -> Serialized {
+        let mut keys = Vec::<K>::new();
+        let mut values = Vec::<V>::new();
+        for (key, value) in self.iter(){
+            keys.push(key.clone());
+            values.push(value.clone());
+        }
+        let mut result = keys.serialize();
+        result.extend(values.serialize());
+        result
+    }
+}
+
+impl<K: Deserializable + Eq + Hash + Clone, 
+     V: Deserializable + Clone> Deserializable for HashMap<K, V> {
+    fn from_serialized(serialized: &Serialized) -> Result<(Self, usize), SerializationError> {
+        let keys_result = Vec::<K>::from_serialized(serialized);
+        if keys_result.is_err(){
+            return Err(keys_result.err().unwrap());
+        }
+        let (keys, mut offset) = keys_result.unwrap();
+        let values_result = Vec::<V>::from_serialized(&serialized[offset..].to_vec());
+        if values_result.is_err(){
+            return Err(values_result.err().unwrap());
+        }
+        let (values, values_offset) = values_result.unwrap();
+        if values.len() != keys.len(){
+            return Err(InvalidDataError("Different sizes of values and keys. Not a HashMap?"));
+        }
+        offset += values_offset;
+        let mut result = Self::new();
+        for i in 0..keys.len(){
+            result.insert(keys[i].clone(), values[i].clone());
+        }
+        drop(keys);
+        drop(values);
+        Ok((result, offset))
+    }
+}
+
 
 /* Tests begin here */
 mod tests {
+    use libmilkyway_derive::{Deserializable, Serializable};
     use super::*;
 
     macro_rules! test_serialization {
@@ -288,5 +332,98 @@ mod tests {
         let serialized: Serialized = vec![];
         let result = bool::from_serialized(&serialized);
         assert!(matches!(result, Err(SerializationError::LengthError)));
+    }
+
+    #[derive(Debug, PartialEq, Eq, Hash, Clone, Serializable, Deserializable)]
+    struct TestKey {
+        id: u32,
+    }
+
+    #[derive(Debug, PartialEq, Clone, Serializable, Deserializable)]
+    struct TestValue {
+        value: Vec<u8>,
+    }
+
+    #[test]
+    fn test_serialize_deserialize_empty_hashmap() {
+        let hashmap: HashMap<TestKey, TestValue> = HashMap::new();
+        let serialized = hashmap.serialize();
+        let (deserialized, size) = HashMap::<TestKey, TestValue>::from_serialized(&serialized).unwrap();
+        assert_eq!(hashmap, deserialized);
+        assert_eq!(size, serialized.len());
+    }
+
+    #[test]
+    fn test_serialize_deserialize_non_empty_hashmap() {
+        let mut hashmap: HashMap<TestKey, TestValue> = HashMap::new();
+        hashmap.insert(
+            TestKey { id: 1 },
+            TestValue {
+                value: "value1".to_string().as_bytes().to_vec(),
+            },
+        );
+        hashmap.insert(
+            TestKey { id: 2 },
+            TestValue {
+                value: "value2".to_string().as_bytes().to_vec(),
+            },
+        );
+
+        let serialized = hashmap.serialize();
+        let (deserialized, size) = HashMap::<TestKey, TestValue>::from_serialized(&serialized).unwrap();
+        assert_eq!(hashmap, deserialized);
+        assert_eq!(size, serialized.len());
+    }
+
+    #[test]
+    fn test_deserialize_invalid_data() {
+        let serialized: Serialized = vec![1, 2, 3]; // Invalid data for HashMap
+        let result = HashMap::<TestKey, TestValue>::from_serialized(&serialized);
+        assert!(matches!(result, Err(_)));
+    }
+
+    #[test]
+    fn test_deserialize_mismatched_keys_values() {
+        let keys = vec![
+            TestKey { id: 1 },
+            TestKey { id: 2 },
+        ].serialize();
+
+        let values = vec![
+            TestValue {
+                value: "value1".to_string().as_bytes().to_vec(),
+            },
+        ].serialize();
+
+        let mut serialized = keys.clone();
+        serialized.extend(values);
+
+        let result = HashMap::<TestKey, TestValue>::from_serialized(&serialized);
+        assert!(matches!(result, Err(SerializationError::InvalidDataError(_))));
+    }
+
+    #[test]
+    fn test_deserialize_hashmap_length_error() {
+        let serialized: Serialized = vec![]; // Empty vector, should result in length error
+        let result = HashMap::<TestKey, TestValue>::from_serialized(&serialized);
+        assert!(matches!(result, Err(SerializationError::LengthError)));
+    }
+
+    #[test]
+    fn test_serialize_deserialize_large_hashmap() {
+        let mut hashmap: HashMap<TestKey, TestValue> = HashMap::new();
+        for i in 0..1000 {
+            hashmap.insert(
+                TestKey { id: i },
+                TestValue {
+                    value: format!("value{}", i).as_bytes().to_vec(),
+                },
+            );
+        }
+
+        let serialized = hashmap.serialize();
+        let (deserialized, size) = HashMap::<TestKey, TestValue>::from_serialized(&serialized).unwrap();
+        assert_eq!(hashmap, deserialized);
+        assert_eq!(size, serialized.len());
     }
 }

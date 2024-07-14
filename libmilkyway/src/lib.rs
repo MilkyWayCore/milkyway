@@ -1,7 +1,18 @@
 pub mod serialization;
 pub mod pki;
-mod macros;
+pub mod macros;
+pub mod message;
+pub mod transport;
+pub mod tokio;
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
+fn get_timestamp_with_milliseconds() -> u128 {
+    let start = SystemTime::now();
+    let since_the_epoch = start.duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
+    since_the_epoch.as_millis()
+}
 
 /* Library-wide tests begin here */
 #[cfg(test)]
