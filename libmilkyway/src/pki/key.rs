@@ -81,7 +81,7 @@ pub trait CryptoKey: Serializable + Deserializable{
             return Err(CryptographicError(decrypted_data_result.err().unwrap()));
         }
         let decrypted_data = decrypted_data_result.unwrap();
-        println!("Decrypted data: {:?}", decrypted_data);
+        //println!("Decrypted data: {:?}", decrypted_data);
         let deserialization_result = T::from_serialized(&decrypted_data);
         if deserialization_result.is_err(){
             Err(deserialization_result.err().unwrap())

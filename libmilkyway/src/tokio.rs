@@ -1,6 +1,7 @@
 /** Tokio utilities **/
 use std::future::Future;
 use std::sync::Mutex;
+use std::time::Duration;
 use once_cell::sync::Lazy;
 use tokio::runtime::Runtime;
 
@@ -38,4 +39,19 @@ pub fn tokio_spawn<F: Future + std::marker::Send + 'static>(f: F)
     RUNTIME.with(|rt| {
         rt.try_lock().unwrap().as_mut().unwrap().spawn(f)
     });
+}
+
+pub async fn tokio_timeout<'a, F: Future + Send + 'a>(milliseconds: Option<u64>, f: F) -> Option<<F as futures::Future>::Output>
+    where <F as futures::Future>::Output: std::marker::Send,
+{
+    if milliseconds.is_none(){
+        Some(f.await)
+    } else {
+        let duration = Duration::from_millis(milliseconds.unwrap());
+        let result = tokio::time::timeout(duration, f).await;
+        if result.is_err(){
+            return None;
+        }
+        Some(result.unwrap())
+    }
 }
