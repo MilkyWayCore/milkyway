@@ -186,7 +186,6 @@ impl CryptoKey for Falcon1024PublicKey {
 mod tests {
     use super::*;
     use pqcrypto_falcon::falcon1024;
-    use crate::pki::hash::Hash;
 
     #[test]
     fn test_generate_falcon1024_keypair() {

@@ -66,14 +66,12 @@ impl Certificate<kyber1024::PublicKey, kyber1024::SecretKey> for Kyber1024Certif
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pqcrypto::kem::kyber1024::{self, Ciphertext, SharedSecret, PublicKey, SecretKey};
-    use crate::pki::certificate::{Certificate, CertificateType};
+    use pqcrypto::kem::kyber1024::{self, PublicKey, SecretKey};
+    use crate::pki::certificate::Certificate;
     use crate::serialization::serializable::{Serializable, Serialized};
     use crate::serialization::deserializable::Deserializable;
-    use crate::pki::impls::CryptoError;
-    use crate::pki::hash::{CryptoHashable, Hash, HashType};
+    use crate::pki::hash::HashType;
     use crate::pki::impls::certificates::falcon1024::Falcon1024RootCertificate;
-    use crate::pki::signature::Signature;
 
     #[derive(Clone, Serializable, Deserializable, Debug, PartialEq)]
     struct TestData {

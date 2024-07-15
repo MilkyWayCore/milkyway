@@ -1,5 +1,4 @@
 use std::mem::size_of;
-use std::time::Duration;
 use async_trait::async_trait;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::serialization::deserializable::Deserializable;
@@ -110,7 +109,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_raw() {
-        let (mut client, mut server) = duplex(64);
+        let (client, mut server) = duplex(64);
         let mut client_transport = StreamTransport::from_stream(client);
         //let mut server_transport = StreamTransport::from_stream(server);
 
@@ -133,7 +132,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_receive_raw() {
-        let (mut client, mut server) = duplex(64);
+        let (client, mut server) = duplex(64);
         let mut transport = StreamTransport::from_stream(client);
 
         let data: Serialized = vec![1, 2, 3, 4, 5];
@@ -149,7 +148,7 @@ mod tests {
     
     #[tokio::test]
     async fn test_receive_raw_with_timeout() {
-        let (mut client, mut server) = duplex(64);
+        let (client, _server) = duplex(64);
         let mut transport = StreamTransport::from_stream(client);
 
         let result = timeout(Duration::from_millis(120), transport.receive_raw(Some(100))).await;
@@ -159,7 +158,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_and_receive() {
-        let (mut client, mut server) = duplex(64);
+        let (client, server) = duplex(64);
         let mut client_transport = StreamTransport::from_stream(client);
         let mut server_transport = StreamTransport::from_stream(server);
 

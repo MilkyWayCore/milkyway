@@ -6,7 +6,6 @@ use crate::pki::hash::HashType;
 use crate::pki::impls::certificates::falcon1024::Falcon1024Certificate;
 use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
 use crate::pki::impls::CryptoError;
-use crate::pki::key::CryptoKey;
 use crate::pki::signature::Signature;
 use crate::serialization::error::SerializationError;
 use crate::serialization::serializable::Serialized;
@@ -81,7 +80,6 @@ mod tests {
     use super::*;
     use crate::pki::impls::certificates::falcon1024::Falcon1024Certificate;
     use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
-    use crate::pki::signature::Signature;
     use crate::serialization::serializable::{Serializable, Serialized};
     use crate::serialization::deserializable::Deserializable;
     use crate::serialization::error::SerializationError;
@@ -205,13 +203,6 @@ mod tests {
         let remote_encryption_cert = generate_kyber1024_certificate();
 
         // Initialize the CryptoTransformer
-        let transformer = CryptoTransformer::new(
-            local_signing_cert.clone(),
-            local_encryption_cert.clone(),
-            remote_signing_cert.clone_without_private(),
-            remote_encryption_cert.clone_without_private(),
-        );
-
         let detransformer = CryptoTransformer::new(
             remote_signing_cert.clone(),
             remote_encryption_cert.clone(),

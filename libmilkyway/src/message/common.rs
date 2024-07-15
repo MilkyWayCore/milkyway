@@ -31,7 +31,7 @@ impl<'a> Message {
     ///
     /// * id: ID of message to set
     ///
-    fn set_id(&'a mut self, id: u128) -> &'a mut Message{
+    pub fn set_id(&'a mut self, id: u128) -> &'a mut Message{
         self.id = id;
         self
     }
@@ -43,7 +43,7 @@ impl<'a> Message {
     /// * timestamp: specific timestamp to set for message
     ///
     #[inline]
-    fn set_timestamp(&'a mut self, timestamp: u128) -> &'a mut Message{
+    pub fn set_timestamp(&'a mut self, timestamp: u128) -> &'a mut Message{
         self.timestamp = timestamp;
         self
     }
@@ -52,14 +52,14 @@ impl<'a> Message {
     /// Builder-like function to set a timestamp for message.
     ///
     #[inline]
-    fn set_current_timestamp(&'a mut self) -> &'a mut Message{
+    pub fn set_current_timestamp(&'a mut self) -> &'a mut Message{
         self.set_timestamp(get_timestamp_with_milliseconds())
     }
 
     ///
     /// Clones and strips signature, allowing to sign/verify signature
     ///
-    fn as_signable(&self) -> Message{
+    pub fn as_signable(&self) -> Message{
         let mut m_copy = self.clone();
         m_copy.signature = None;
         m_copy
@@ -72,7 +72,7 @@ impl<'a> Message {
     /// * key: CryptoKey: A key capable of signing data
     /// * hash_type: HashType: A type of hash to use for signature
     ///
-    fn sign<T: CryptoKey>(&'a mut self, key: &T, hash_type: HashType) -> &'a Message{
+    pub fn sign<T: CryptoKey>(&'a mut self, key: &T, hash_type: HashType) -> &'a Message{
         let signature = key.sign(&self.as_signable(), hash_type);
         self.signature = Some(signature.unwrap());
         self
@@ -80,7 +80,7 @@ impl<'a> Message {
 
     ///
     /// Function
-    fn verify_signature<T: CryptoKey>(&'a mut self, key: &T) -> bool{
+    pub fn verify_signature<T: CryptoKey>(&'a mut self, key: &T) -> bool{
         let signature = self.signature.clone().unwrap();
         key.verify_signature(&self.as_signable(), &signature)
     }
@@ -92,7 +92,7 @@ impl<'a> Message {
     /// * source: u128: ID of source
     ///
     #[inline]
-    fn set_source(&'a mut self, source: u128) -> &'a Message{
+    pub fn set_source(&'a mut self, source: u128) -> &'a Message{
         self.source = source;
         self
     }
@@ -104,7 +104,7 @@ impl<'a> Message {
     /// * destination: u128: ID of destination
     ///
     #[inline]
-    fn set_destination(&'a mut self, destination: u128) -> &'a Message{
+    pub fn set_destination(&'a mut self, destination: u128) -> &'a Message{
         self.destination = destination;
         self
     }
@@ -124,7 +124,6 @@ pub trait AsMessage{
 mod tests {
     use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
-    use std::collections::HashMap;
     use crate::pki::hash::CryptoHashable;
     use crate::pki::impls::{CryptoError, CryptoType};
     use crate::pki::key::KeyType;

@@ -1,8 +1,7 @@
 use libmilkyway_derive::{Deserializable, Serializable};
 use crate::pki::certificate::{Certificate, CertificateType};
-use crate::pki::certificate::CertificateType::{EnciphermentCertificate, RootCertificate,
+use crate::pki::certificate::CertificateType::{RootCertificate,
                                                SigningCertificate};
-use crate::pki::hash::CryptoHashable;
 use crate::pki::impls::keys::falcon1024::{Falcon1024PublicKey, Falcon1024SecretKey};
 use crate::pki::signature::Signature;
 use crate::serialization::deserializable::Deserializable;
@@ -124,13 +123,11 @@ impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024RootCer
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pki::certificate::{Certificate, CertificateType};
-    use crate::pki::impls::keys::falcon1024::{Falcon1024PublicKey, Falcon1024SecretKey, generate_falcon1024_keypair};
-    use crate::pki::signature::Signature;
+    use crate::pki::certificate::Certificate;
+    use crate::pki::impls::keys::falcon1024::generate_falcon1024_keypair;
     use crate::serialization::error::SerializationError;
     use crate::serialization::serializable::{Serializable, Serialized};
-    use crate::pki::impls::CryptoError;
-    use crate::pki::hash::{CryptoHashable, Hash, HashType};
+    use crate::pki::hash::HashType;
     use crate::pki::key::CryptoKey;
 
     #[derive(Clone, Serializable, Deserializable)]

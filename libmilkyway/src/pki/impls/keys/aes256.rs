@@ -1,6 +1,5 @@
-use aes_gcm::{AeadCore, Aes256Gcm, AesGcm, KeyInit, Nonce};
+use aes_gcm::{AeadCore, Aes256Gcm, KeyInit, Nonce};
 use aes_gcm::aead::Aead;
-use aes_gcm::aead::generic_array::GenericArray;
 use rand::rngs::OsRng;
 use crate::pki::impls::{CryptoError, CryptoType};
 use crate::pki::key::{CryptoKey, KeyType};
@@ -84,7 +83,7 @@ mod tests {
 
     #[test]
     fn test_encrypt_decrypt_aes256gcm() {
-        let key = Aes256Gcm::generate_key(OsRng);;
+        let key = Aes256Gcm::generate_key(OsRng);
         let data = b"secret data".to_vec().serialize();
 
         let encrypted_data = key.encrypt_raw(&data).unwrap();
@@ -95,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_encrypt_decrypt_aes256gcm_with_nonce() {
-        let key = Aes256Gcm::generate_key(OsRng);;
+        let key = Aes256Gcm::generate_key(OsRng);
         let data = b"secret data".to_vec();
         let cipher = Aes256Gcm::new(&key);
         let nonce = Nonce::from_slice(b"unique nonce");
@@ -108,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_serialize_deserialize_with_encryption() {
-        let key = Aes256Gcm::generate_key(OsRng);;
+        let key = Aes256Gcm::generate_key(OsRng);
         let data = b"secret datarfnodhgortihjgergjdrjsff".to_vec().serialize();
 
         let encrypted_data = key.encrypt_raw(&data).unwrap();
