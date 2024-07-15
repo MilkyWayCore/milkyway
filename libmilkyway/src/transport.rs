@@ -1,11 +1,14 @@
-mod stream;
+pub mod stream;
+pub mod crypto;
 
 use async_trait::async_trait;
+use crate::message::common::Message;
 use crate::serialization::deserializable::Deserializable;
 use crate::serialization::error::SerializationError;
 use crate::serialization::serializable::{Serializable, Serialized};
 
-
+/** This is a constant address for a main server/broker **/
+pub const TRANSPORT_TARGET_SERVER: u128 = 1;
 
 ///
 /// The extensions allow to transform/detransform data.
@@ -21,7 +24,7 @@ pub trait TransportTransformer: Send{
     ///
     /// # Returns
     /// Detransformed serialized data
-    fn detransform(&self, data: &Serialized) -> Serialized;
+    fn detransform(&self, data: &Serialized) -> Result<Serialized, SerializationError>;
 
     ///
     /// Transforms data before sending.
@@ -74,6 +77,16 @@ pub trait Transport{
         self.send_raw(object.serialize()).await
     }
 
+    ///
+    /// Receives data from a transport
+    ///
+    /// # Template arguments
+    /// * T: Deserializable: a type to which result should be deserialized
+    ///
+    /// # Arguments
+    /// * timeout: Option<u64>: amount of milliseconds to cancel waiting the response after.
+    ///                         Will wait indefinetely if None is passed.
+    ///
     async fn receive<T: Deserializable>(&mut self,
                                         timeout: Option<u64>) -> Option<Result<T, SerializationError>>{
         let serialized_data = self.receive_raw(timeout).await;
@@ -97,4 +110,19 @@ pub trait Transport{
     /// # Returns
     /// Updated transport instance
     fn add_transformer<'a>(&'a mut self, transformer: Box<dyn TransportTransformer>) -> &'a Self;
+}
+
+///
+/// A generic trait for communicating from modules themselves
+///
+#[async_trait]
+pub trait TransportService{
+    ///
+    /// Sends message to a given client
+    ///
+    /// # Arguments
+    /// * msg: &Message: reference to message which should be sent
+    /// * target: u128: an ID of client to send it to
+    ///
+    async fn send_message(&self, target: u128, msg: &Message);
 }

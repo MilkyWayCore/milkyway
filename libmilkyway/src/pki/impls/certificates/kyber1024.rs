@@ -11,11 +11,11 @@ use crate::pki::signature::Signature;
 
 #[derive(Clone, Serializable, Deserializable, PartialEq)]
 pub struct Kyber1024Certificate{
-    serial_number: u128,
-    parent_serial_number: u128,
+    pub(crate) serial_number: u128,
+    pub(crate) parent_serial_number: u128,
     pub secret_key: Option<kyber1024::SecretKey>,
     pub public_key: kyber1024::PublicKey,
-    signature: Option<Signature>,
+    pub(crate) signature: Option<Signature>,
 }
 
 impl Certificate<kyber1024::PublicKey, kyber1024::SecretKey> for Kyber1024Certificate{

@@ -163,6 +163,29 @@ impl<K: Deserializable + Eq + Hash + Clone,
     }
 }
 
+impl Serializable for String {
+    #[inline]
+    fn serialize(&self) -> Serialized {
+        self.as_bytes().to_vec()
+    }
+}
+
+impl Deserializable for String{
+    fn from_serialized(serialized: &Serialized) -> Result<(Self, usize), SerializationError> {
+        let deserialized_bytes_result = 
+            Vec::<u8>::from_serialized(serialized);
+        if deserialized_bytes_result.is_err(){
+            return Err(deserialized_bytes_result.err().unwrap());
+        }
+        let (deserialized_bytes, offset) = deserialized_bytes_result.unwrap();
+        let result = String::from_utf8(deserialized_bytes);
+        if result.is_err(){
+            return Err(SerializationError::InvalidDataError("String in non-UTF8 format"));
+        }
+        Ok((result.unwrap(), offset))
+    }
+}
+
 
 /* Tests begin here */
 mod tests {

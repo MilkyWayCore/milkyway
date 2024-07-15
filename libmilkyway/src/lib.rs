@@ -4,6 +4,8 @@ pub mod macros;
 pub mod message;
 pub mod transport;
 pub mod tokio;
+pub mod module;
+mod services;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 

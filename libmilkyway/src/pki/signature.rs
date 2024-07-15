@@ -10,7 +10,7 @@ use crate::serialization::serializable::Serialized;
 ///
 /// Signature with metadata
 ///
-#[derive(Clone, Serializable, Deserializable, PartialEq)]
+#[derive(Clone, Serializable, Deserializable, PartialEq, Debug)]
 pub struct Signature {
     pub algorithm: HashType,
     pub crypto_algorithm: CryptoType,

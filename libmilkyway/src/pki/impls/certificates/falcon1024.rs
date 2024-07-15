@@ -14,11 +14,11 @@ use crate::serialization::serializable::{Serializable, Serialized};
 ///
 #[derive(Clone, Serializable, Deserializable, PartialEq)]
 pub struct Falcon1024Certificate {
-    serial_number: u128,
-    parent_serial_number: u128,
-    secret_key: Option<Falcon1024SecretKey>,
-    public_key: Falcon1024PublicKey,
-    signature: Option<Signature>,
+    pub(crate) serial_number: u128,
+    pub(crate) parent_serial_number: u128,
+    pub(crate) secret_key: Option<Falcon1024SecretKey>,
+    pub(crate) public_key: Falcon1024PublicKey,
+    pub(crate) signature: Option<Signature>,
 }
 
 impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024Certificate {

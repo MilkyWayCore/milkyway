@@ -4,8 +4,8 @@ use crate::serialization::deserializable::Deserializable;
 use crate::serialization::error::SerializationError;
 
 pub mod keys;
-mod certificates;
-mod hashable;
+pub mod certificates;
+pub mod hashable;
 
 ///
 /// Crypto alogrithm type

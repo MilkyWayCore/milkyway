@@ -136,6 +136,11 @@ impl CryptoKey for kyber1024::SecretKey {
     }
 }
 
+#[inline]
+pub fn generate_kyber1024_keypair() -> (kyber1024::PublicKey, kyber1024::SecretKey) {
+    kyber1024::keypair()
+}
+
 /* Tests begin here */
 #[cfg(test)]
 mod tests {
