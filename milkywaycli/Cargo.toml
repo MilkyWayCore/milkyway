@@ -1,0 +1,9 @@
+[package]
+name = "milkywaycli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libmilkyway = {path = "../libmilkyway"}
+libmilkyway_derive = { path = "../libmilkyway_derive"}
+serde = { version = "1.0.204", features = ["derive"] }
