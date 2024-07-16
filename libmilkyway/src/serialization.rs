@@ -166,7 +166,7 @@ impl<K: Deserializable + Eq + Hash + Clone,
 impl Serializable for String {
     #[inline]
     fn serialize(&self) -> Serialized {
-        self.as_bytes().to_vec()
+        self.as_bytes().to_vec().serialize()
     }
 }
 
@@ -447,6 +447,46 @@ mod tests {
         let serialized = hashmap.serialize();
         let (deserialized, size) = HashMap::<TestKey, TestValue>::from_serialized(&serialized).unwrap();
         assert_eq!(hashmap, deserialized);
+        assert_eq!(size, serialized.len());
+    }
+
+    #[test]
+    fn test_serialize_string() {
+        let original = String::from("Hello, world!");
+        let serialized = original.serialize();
+        assert_eq!(serialized, b"Hello, world!".to_vec().serialize());
+    }
+
+    #[test]
+    fn test_deserialize_string() {
+        let serialized: Serialized = b"Hello, world!".to_vec().serialize();
+        let (deserialized, size) = String::from_serialized(&serialized).unwrap();
+        assert_eq!(deserialized, "Hello, world!");
+        assert_eq!(size, serialized.len());
+    }
+
+    #[test]
+    fn test_deserialize_empty_string() {
+        let serialized: Serialized = "".to_string().serialize();
+        let (deserialized, size) = String::from_serialized(&serialized).unwrap();
+        assert_eq!(deserialized, "");
+        assert_eq!(size, serialized.len());
+    }
+
+    #[test]
+    fn test_deserialize_invalid_utf8() {
+        let serialized: Serialized = vec![255, 0, 159, 146, 150].serialize();
+        let result = String::from_serialized(&serialized);
+        println!("Result: {:?}", result);
+        assert!(matches!(result, Err(SerializationError::InvalidDataError(_))));
+    }
+
+    #[test]
+    fn test_serialize_deserialize_round_trip() {
+        let original = String::from("Round trip test!");
+        let serialized = original.serialize();
+        let (deserialized, size) = String::from_serialized(&serialized).unwrap();
+        assert_eq!(original, deserialized);
         assert_eq!(size, serialized.len());
     }
 }

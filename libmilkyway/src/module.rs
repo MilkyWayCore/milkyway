@@ -1,5 +1,7 @@
-use std::sync::Arc;
+pub mod loader;
+
 use crate::message::common::Message;
+use crate::services::certificate::CertificateService;
 use crate::services::name::NameService;
 use crate::transport::TransportService;
 
@@ -7,7 +9,7 @@ use crate::transport::TransportService;
 /// A data bus for modules
 /// Allows exchanging data between modules and MilkyWay on a local machine
 ///
-pub trait ModuleDataBus{
+pub trait ModuleDataBus: Send + Sync{
     ///
     /// Gets a transport service
     ///
@@ -22,12 +24,19 @@ pub trait ModuleDataBus{
     /// returns: Box<dyn NameService>: a boxed trait object of a NameService
     ///
     fn get_name_service(&self) -> Box<dyn NameService>;
+
+    ///
+    /// Gets a certificate service
+    ///
+    /// returns: Box<dyn CertificateService>: a boxed trait object of a CertificateService
+    ///
+    fn get_certificate_service(&self) -> Box<dyn CertificateService>;
 }
 
 ///
 /// A dynamically loadable module
 ///
-pub trait MilkywayModule{
+pub trait MilkywayModule: Send + Sync{
     ///
     /// Gets a unique ID of module
     ///
@@ -39,7 +48,7 @@ pub trait MilkywayModule{
     /// # Arguments
     /// * data_bus: Arc<Box<dyn ModuleDataBus>>: an implementation of a data bus
     ///
-    fn on_load(&mut self, data_bus: Arc<Box<dyn ModuleDataBus>>);
+    fn on_load(&mut self, data_bus: Box<dyn ModuleDataBus>);
 
     ///
     /// Called when some CLI command is received.
