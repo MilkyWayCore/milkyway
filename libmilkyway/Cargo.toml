@@ -3,7 +3,7 @@ name = "libmilkyway"
 version = "0.1.0"
 edition = "2021"
 description = "libmilkyway is a part of milkyway project providing common protocols for communicating between MilkyWay modules"
-license = "AGPL-3"
+license = "AGPL-3.0-or-later"
 
 [dependencies]
 clap = { version = "4.5.7", features = ["derive"] }
@@ -17,4 +17,4 @@ async-trait = "0.1.81"
 tokio = { version = "1.36.0", features = ["sync", "io-util", "macros", "rt", "net", "time"] }
 libloading = "0.8.4"
 # Internal project dependencies
-libmilkyway_derive = { path = "../libmilkyway_derive"}
+libmilkyway_derive = "0.1.0"
