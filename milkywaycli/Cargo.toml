@@ -6,4 +6,6 @@ edition = "2021"
 [dependencies]
 libmilkyway = {path = "../libmilkyway"}
 libmilkyway_derive = { path = "../libmilkyway_derive"}
+# External crates
+colored = "2.1.0"
 serde = { version = "1.0.204", features = ["derive"] }

@@ -1,14 +1,53 @@
+///
+/// Serialization and deserialization to byte arrays implementation
+/// 
 pub mod serialization;
+
+///
+/// Postquantum PKI implementation
+/// 
 pub mod pki;
+
+///
+/// Standard macros for simplifying writing code
+/// 
 pub mod macros;
+
+///
+/// Common messaging protocol
+/// 
 pub mod message;
+
+///
+/// Communication implementations
+/// 
 pub mod transport;
+
+///
+/// tokio utilities
+/// 
 pub mod tokio;
+
+///
+/// A module for loading dynamic modules
+/// 
 pub mod module;
+
+///
+/// Common protocol for sharing core features with modules
+/// 
 pub mod services;
+
+/// 
+/// CLI utilites
+/// 
+pub mod cli;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
+///
+/// Get exact timestamp with milliseconds
+/// 
 pub fn get_timestamp_with_milliseconds() -> u128 {
     let start = SystemTime::now();
     let since_the_epoch = start.duration_since(UNIX_EPOCH)

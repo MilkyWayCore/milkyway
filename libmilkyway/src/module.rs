@@ -61,8 +61,17 @@ pub trait MilkywayModule: Send + Sync{
     /// # Arguments
     /// * command: String: a command received from CLI
     /// * arguments Vec<String>: arguments passed from CLI
-    ///
-    fn on_cli_command(&self, command: String, arguments: Vec<String>);
+    /// 
+    /// # Command examples
+    /// Level 2 command
+    /// ```sh
+    /// mway certman/list
+    /// ```
+    /// Level 3 command 
+    /// ```sh
+    /// mway certman/encryption/generate name="my_encryption_cert"
+    ///```
+    fn on_cli_command(&self, command: Vec<String>, arguments: Vec<String>);
 
     ///
     /// Handles message on milkyway server

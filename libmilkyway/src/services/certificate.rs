@@ -7,7 +7,7 @@ pub const ROOT_CERTIFICATE_SERIAL: u128 = 0;
 ///
 /// Certificate service is responsible for handling, storing and obtaining certificates
 ///
-pub trait CertificateService{
+pub trait CertificateService: Send + Sync{
     ///
     /// Sets root certificate
     /// 

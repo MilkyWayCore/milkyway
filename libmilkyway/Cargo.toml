@@ -2,6 +2,8 @@
 name = "libmilkyway"
 version = "0.1.0"
 edition = "2021"
+description = "libmilkyway is a part of milkyway project providing common protocols for communicating between MilkyWay modules"
+license = "AGPL-3"
 
 [dependencies]
 clap = { version = "4.5.7", features = ["derive"] }
