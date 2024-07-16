@@ -60,6 +60,7 @@ impl CommandRouter {
     /// 
     /// # Returns
     /// true if command was found, false otherwise
+    /// 
     pub fn on_command(&mut self, command: Vec<String>, arguments: Vec<String>) -> bool{
         if command.len() == 0{
             panic!("Empty command vector");
@@ -73,3 +74,97 @@ impl CommandRouter {
         true
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    // Mock CommandNamespace implementation for testing
+    struct MockNamespace {
+        received_commands: Rc<RefCell<Vec<(String, Vec<String>)>>>,
+    }
+
+    impl MockNamespace {
+        fn new() -> Self {
+            Self {
+                received_commands: Rc::new(RefCell::new(Vec::new())),
+            }
+        }
+
+        fn get_received_commands(&self) -> Rc<RefCell<Vec<(String, Vec<String>)>>> {
+            self.received_commands.clone()
+        }
+    }
+
+    impl CommandNamespace for MockNamespace {
+        fn on_command(&mut self, command: String, args: Vec<String>) {
+            self.received_commands.borrow_mut().push((command, args));
+        }
+    }
+
+    #[test]
+    fn test_register_namespace() {
+        let mut router = CommandRouter::new();
+        let namespace_path = vec!["certman".to_string(), "encryption".to_string()];
+        let namespace = Box::new(MockNamespace::new());
+
+        router.register_namespace(namespace_path.clone(), namespace);
+        assert!(router.namespaces.contains_key(&namespace_path));
+    }
+
+    #[test]
+    #[should_panic(expected = "Namespace is already registered")]
+    fn test_register_namespace_already_registered() {
+        let mut router = CommandRouter::new();
+        let namespace_path = vec!["certman".to_string(), "encryption".to_string()];
+        let namespace = Box::new(MockNamespace::new());
+
+        router.register_namespace(namespace_path.clone(), namespace);
+        // Registering the same namespace again should panic
+        router.register_namespace(namespace_path, Box::new(MockNamespace::new()));
+    }
+
+    #[test]
+    fn test_on_command() {
+        let mut router = CommandRouter::new();
+        let namespace_path = vec!["certman".to_string(), "encryption".to_string()];
+        let namespace = Box::new(MockNamespace::new());
+        let received_commands = namespace.get_received_commands();
+
+        router.register_namespace(namespace_path.clone(), namespace);
+
+        let command_path = vec!["certman".to_string(), "encryption".to_string(), "add".to_string()];
+        let arguments = vec!["arg1".to_string(), "arg2".to_string()];
+        let result = router.on_command(command_path.clone(), arguments.clone());
+
+        assert!(result);
+        let received_commands = received_commands.borrow();
+        assert_eq!(received_commands.len(), 1);
+        assert_eq!(received_commands[0], ("add".to_string(), arguments));
+    }
+
+    #[test]
+    fn test_on_command_namespace_not_found() {
+        let mut router = CommandRouter::new();
+        let namespace_path = vec!["certman".to_string(), "encryption".to_string()];
+        let namespace = Box::new(MockNamespace::new());
+        router.register_namespace(namespace_path.clone(), namespace);
+
+        let command_path = vec!["certman".to_string(), "decryption".to_string(), "add".to_string()];
+        let arguments = vec!["arg1".to_string(), "arg2".to_string()];
+        let result = router.on_command(command_path, arguments);
+
+        assert!(!result);
+    }
+
+    #[test]
+    #[should_panic(expected = "Empty command vector")]
+    fn test_on_command_empty_command() {
+        let mut router = CommandRouter::new();
+        let arguments = vec!["arg1".to_string(), "arg2".to_string()];
+        router.on_command(Vec::new(), arguments);
+    }
+}
+
