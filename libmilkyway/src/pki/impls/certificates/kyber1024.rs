@@ -11,11 +11,12 @@ use crate::pki::signature::Signature;
 
 #[derive(Clone, Serializable, Deserializable, PartialEq)]
 pub struct Kyber1024Certificate{
-    pub(crate) serial_number: u128,
-    pub(crate) parent_serial_number: u128,
+    pub serial_number: u128,
+    pub parent_serial_number: u128,
     pub secret_key: Option<kyber1024::SecretKey>,
     pub public_key: kyber1024::PublicKey,
-    pub(crate) signature: Option<Signature>,
+    pub signature: Option<Signature>,
+    pub name: String,
 }
 
 impl Certificate<kyber1024::PublicKey, kyber1024::SecretKey> for Kyber1024Certificate{
@@ -49,16 +50,22 @@ impl Certificate<kyber1024::PublicKey, kyber1024::SecretKey> for Kyber1024Certif
         self.secret_key.clone()
     }
 
-    fn clone_without_private(&self) -> Self {
+    fn clone_without_signature_and_sk(&self) -> Self {
         let mut m_copy = self.clone();
+        m_copy.signature = None;
         m_copy.secret_key = None;
         m_copy
     }
 
     fn clone_without_signature(&self) -> Self {
-        let mut m_copy = self.clone();
+        let mut m_copy = self.clone_without_signature_and_sk();
         m_copy.signature = None;
         m_copy
+    }
+
+    #[inline]
+    fn get_name(&self) -> String {
+        self.name.clone()
     }
 }
 
@@ -91,6 +98,7 @@ mod tests {
         let root_certificate = Falcon1024RootCertificate {
             secret_key: Some(root_secret_key),
             public_key: root_public_key.clone(),
+            name: "test".to_string(),
         };
 
         let encipherment_certificate = Kyber1024Certificate {
@@ -99,10 +107,11 @@ mod tests {
             secret_key: Some(encipherment_secret_key),
             public_key: encipherment_public_key.clone(),
             signature: None,
+            name: "test".to_string(),
         };
 
         // Sign the encipherment certificate with the root certificate
-        let signature = root_certificate.sign_data(&encipherment_certificate,
+        let signature = root_certificate.sign_data(&encipherment_certificate.clone_without_signature(),
                                                    HashType::None).unwrap();
         let mut signed_certificate = encipherment_certificate.clone();
         signed_certificate.signature = Some(signature.clone());
@@ -142,6 +151,7 @@ mod tests {
             secret_key: Some(secret_key),
             public_key,
             signature: None,
+            name: "test".to_string(),
         };
 
         let serialized = certificate.serialize();
@@ -158,9 +168,10 @@ mod tests {
             secret_key: Some(secret_key),
             public_key: public_key.clone(),
             signature: None,
+            name: "test".to_string(),
         };
 
-        let cloned_certificate = certificate.clone_without_private();
+        let cloned_certificate = certificate.clone_without_signature_and_sk();
         assert!(cloned_certificate.secret_key.is_none());
         assert!(cloned_certificate.public_key == public_key);
     }
@@ -174,6 +185,7 @@ mod tests {
             secret_key: Some(secret_key),
             public_key: public_key.clone(),
             signature: None,
+            name: "test".to_string(),
         };
 
         let test_data = TestData {

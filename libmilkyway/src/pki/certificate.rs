@@ -67,7 +67,7 @@ pub trait Certificate<PK: CryptoKey, SK: CryptoKey>: Serializable + Deserializab
     ///
     /// Clones certificate without private data
     ///
-    fn clone_without_private(&self) -> Self;
+    fn clone_without_signature_and_sk(&self) -> Self;
 
 
     ///
@@ -156,4 +156,11 @@ pub trait Certificate<PK: CryptoKey, SK: CryptoKey>: Serializable + Deserializab
         let key = key_option.unwrap();
         key.decrypt::<T>(data)
     }
+    
+    ///
+    /// Gets name of certificate
+    /// 
+    /// returns: String: name of certificate
+    ///
+    fn get_name(&self) -> String;
 }

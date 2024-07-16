@@ -101,6 +101,7 @@ mod tests {
             secret_key: Some(secret_key),
             public_key,
             signature: None,
+            name: "test".to_string(),
         }
     }
 
@@ -112,6 +113,7 @@ mod tests {
             secret_key: Some(secret_key),
             public_key,
             signature: None,
+            name: "test".to_string(),
         }
     }
 
@@ -127,15 +129,15 @@ mod tests {
         let transformer = CryptoTransformer::new(
             local_signing_cert.clone(),
             local_encryption_cert.clone(),
-            remote_signing_cert.clone_without_private(),
-            remote_encryption_cert.clone_without_private(),
+            remote_signing_cert.clone_without_signature_and_sk(),
+            remote_encryption_cert.clone_without_signature_and_sk(),
         );
 
         let detransformer = CryptoTransformer::new(
             remote_signing_cert.clone(),
             remote_encryption_cert.clone(),
-            local_signing_cert.clone_without_private(),
-            local_encryption_cert.clone_without_private(),
+            local_signing_cert.clone_without_signature_and_sk(),
+            local_encryption_cert.clone_without_signature_and_sk(),
         );
 
         // Create test data
@@ -165,15 +167,15 @@ mod tests {
         let transformer = CryptoTransformer::new(
             local_signing_cert.clone(),
             local_encryption_cert.clone(),
-            remote_signing_cert.clone_without_private(),
-            remote_encryption_cert.clone_without_private(),
+            remote_signing_cert.clone_without_signature_and_sk(),
+            remote_encryption_cert.clone_without_signature_and_sk(),
         );
 
         let detransformer = CryptoTransformer::new(
             remote_signing_cert.clone(),
             remote_encryption_cert.clone(),
-            local_signing_cert.clone_without_private(),
-            local_encryption_cert.clone_without_private(),
+            local_signing_cert.clone_without_signature_and_sk(),
+            local_encryption_cert.clone_without_signature_and_sk(),
         );
 
         // Create test data
@@ -206,8 +208,8 @@ mod tests {
         let detransformer = CryptoTransformer::new(
             remote_signing_cert.clone(),
             remote_encryption_cert.clone(),
-            local_signing_cert.clone_without_private(),
-            local_encryption_cert.clone_without_private(),
+            local_signing_cert.clone_without_signature_and_sk(),
+            local_encryption_cert.clone_without_signature_and_sk(),
         );
 
         // Create invalid data

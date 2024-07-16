@@ -13,11 +13,12 @@ use crate::serialization::serializable::{Serializable, Serialized};
 ///
 #[derive(Clone, Serializable, Deserializable, PartialEq)]
 pub struct Falcon1024Certificate {
-    pub(crate) serial_number: u128,
-    pub(crate) parent_serial_number: u128,
-    pub(crate) secret_key: Option<Falcon1024SecretKey>,
-    pub(crate) public_key: Falcon1024PublicKey,
-    pub(crate) signature: Option<Signature>,
+    pub serial_number: u128,
+    pub parent_serial_number: u128,
+    pub secret_key: Option<Falcon1024SecretKey>,
+    pub public_key: Falcon1024PublicKey,
+    pub signature: Option<Signature>,
+    pub name: String,
 }
 
 impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024Certificate {
@@ -51,19 +52,25 @@ impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024Certifi
         self.secret_key.clone()
     }
 
-    fn clone_without_private(&self) -> Self {
+    fn clone_without_signature_and_sk(&self) -> Self {
         let mut m_copy = self.clone();
         m_copy.secret_key = None;
+        m_copy.signature = None;
         m_copy
     }
 
     fn clone_without_signature(&self) -> Self {
         if self.signature.is_none(){
-            return self.clone();
+            return self.clone_without_signature_and_sk();
         }
-        let mut m_copy = self.clone();
+        let mut m_copy = self.clone_without_signature_and_sk();
         m_copy.signature = None;
         m_copy
+    }
+
+    #[inline]
+    fn get_name(&self) -> String {
+        self.name.clone()
     }
 }
 
@@ -74,6 +81,7 @@ impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024Certifi
 pub struct Falcon1024RootCertificate {
     pub secret_key: Option<Falcon1024SecretKey>,
     pub public_key: Falcon1024PublicKey,
+    pub name: String,
 }
 
 
@@ -108,7 +116,7 @@ impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024RootCer
         self.secret_key.clone()
     }
 
-    fn clone_without_private(&self) -> Self {
+    fn clone_without_signature_and_sk(&self) -> Self {
         let mut m_copy = self.clone();
         m_copy.secret_key = None;
         m_copy
@@ -116,6 +124,11 @@ impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024RootCer
 
     fn clone_without_signature(&self) -> Self {
         panic!("Root key does not have signature");
+    }
+
+    #[inline]
+    fn get_name(&self) -> String {
+        self.name.clone()
     }
 }
 
@@ -143,6 +156,7 @@ mod tests {
         let root_certificate = Falcon1024RootCertificate {
             secret_key: Some(root_secret_key),
             public_key: root_public_key.clone(),
+            name: "test".to_string(),
         };
 
         let signing_certificate = Falcon1024Certificate {
@@ -151,14 +165,15 @@ mod tests {
             secret_key: Some(signing_secret_key),
             public_key: signing_public_key.clone(),
             signature: None,
+            name: "test".to_string(),
         };
 
-        let signature = root_certificate.sign_data(&signing_certificate,
+        let signature = root_certificate.sign_data(&signing_certificate.clone_without_signature_and_sk(),
                                                    HashType::None).unwrap();
         let mut signed_certificate = signing_certificate.clone();
         signed_certificate.signature = Some(signature.clone());
 
-        assert!(root_certificate.verify_signature(&signed_certificate.clone_without_signature(),
+        assert!(root_certificate.verify_signature(&signed_certificate.clone_without_signature_and_sk(),
                                                   &signature));
 
         // Test message signing and verification
@@ -190,6 +205,7 @@ mod tests {
             secret_key: Some(secret_key),
             public_key,
             signature: None,
+            name: "test".to_string(),
         };
 
         let serialized = certificate.serialize();
@@ -206,9 +222,10 @@ mod tests {
             secret_key: Some(secret_key),
             public_key: public_key.clone(),
             signature: None,
+            name: "test".to_string(),
         };
 
-        let cloned_certificate = certificate.clone_without_private();
+        let cloned_certificate = certificate.clone_without_signature_and_sk();
         assert!(cloned_certificate.secret_key == None);
         assert!(cloned_certificate.public_key == public_key);
     }
@@ -222,6 +239,7 @@ mod tests {
             secret_key: Some(secret_key),
             public_key: public_key.clone(),
             signature: None,
+            name: "test".to_string(),
         };
 
         let test_data = TestData {

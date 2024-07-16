@@ -41,6 +41,11 @@ pub trait MilkywayModule: Send + Sync{
     /// Gets a unique ID of module
     ///
     fn get_id(&self) -> u64;
+    
+    ///
+    /// Gets a supported CLI commands by a module
+    /// 
+    fn get_commands(&self) -> Vec<String>;
 
     ///
     /// Called when module is loaded

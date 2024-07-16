@@ -1,4 +1,3 @@
-use crate::pki::certificate::Certificate;
 use crate::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
 use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
 
@@ -46,7 +45,7 @@ pub trait CertificateService{
     ///
     /// returns: bool: whether certificate was added
     ///
-    fn add_encryption_certificate(&mut self, cert: Kyber1024Certificate);
+    fn add_encryption_certificate(&mut self, cert: Kyber1024Certificate) -> bool;
 
 
     ///
@@ -57,7 +56,7 @@ pub trait CertificateService{
     /// 
     /// returns: bool: whether certificate is valid
     /// 
-    fn verify_signing_certificate(&self, cert: Falcon1024Certificate) -> bool;
+    fn verify_signing_certificate(&self, cert: &Falcon1024Certificate) -> bool;
     
     ///
     /// Verifies encryption certificate
@@ -66,7 +65,7 @@ pub trait CertificateService{
     /// * cert: certificate to verify
     /// 
     /// returns: bool: whether certificate is valid
-    fn verify_encryption_certificate(&self, cert: Kyber1024Certificate) -> bool;
+    fn verify_encryption_certificate(&self, cert: &Kyber1024Certificate) -> bool;
     
     ///
     /// Gets signing certificate
@@ -86,7 +85,7 @@ pub trait CertificateService{
     ///
     /// returns: Option<Kyber1024Certificate>: Either a certificate or None if no such certificate
     ///
-    fn get_encryption_certificate(&self) -> Option<Kyber1024Certificate>;
+    fn get_encryption_certificate(&self, serial: u128) -> Option<Kyber1024Certificate>;
 
     ///
     /// Gets a root certificate
@@ -96,7 +95,7 @@ pub trait CertificateService{
     ///
     /// returns: Option<Falcon1024RootCertificate>: Either a certificate or None if no such certificate
     ///
-    fn get_root_certificate(&self) -> Option<Falcon1024Certificate>;
+    fn get_root_certificate(&self) -> Option<Falcon1024RootCertificate>;
     
     ///
     /// Commits changes, i.e. writes new certificates to storage/sends to peers/etc.
