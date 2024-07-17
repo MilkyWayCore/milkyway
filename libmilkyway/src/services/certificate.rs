@@ -1,4 +1,4 @@
-use crate::actor::binder::{Binder, BinderServiceHandler};
+use crate::actor::binder::{Binder, BinderChannel, BinderMessage, BinderServiceHandler};
 use crate::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
 use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
 
@@ -112,7 +112,8 @@ pub enum CertificateServiceBinderRequest{
     VerifyEncryptionCertificate(Kyber1024Certificate),
     GetSigningCertificate(u128),
     GetEncryptionCertificate(u128),
-    GetRootCertificate
+    GetRootCertificate,
+    Commit,
 }
 
 pub enum CertificateServiceBinderResponse{
@@ -123,11 +124,11 @@ pub enum CertificateServiceBinderResponse{
 ///
 /// A binder type for CertificateServiceBinder
 ///
-pub type CertificateServiceBinder = dyn Binder<CertificateServiceBinderRequest,
-    CertificateServiceBinderResponse>;
+pub type CertificateServiceBinder = dyn BinderChannel<BinderMessage<CertificateServiceBinderRequest,
+    CertificateServiceBinderResponse>>;
 
-impl CertificateService for dyn Binder<CertificateServiceBinderRequest,
-    CertificateServiceBinderResponse>{
+impl CertificateService for dyn BinderChannel<BinderMessage<CertificateServiceBinderRequest,
+    CertificateServiceBinderResponse>>{
 
     #[inline]
     fn set_root_certificate(&mut self, root_cert: Falcon1024RootCertificate) {
@@ -174,6 +175,9 @@ impl CertificateService for dyn Binder<CertificateServiceBinderRequest,
         todo!()
     }
 }
+
+pub type CertificateServiceHandler = dyn BinderServiceHandler<CertificateServiceBinderRequest,
+    CertificateServiceBinderResponse>;
 
 impl BinderServiceHandler<CertificateServiceBinderRequest, 
     CertificateServiceBinderResponse> for dyn CertificateService {

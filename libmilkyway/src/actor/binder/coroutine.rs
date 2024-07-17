@@ -7,6 +7,7 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 use crate::actor::binder::{AsyncBinderChannelImpl, BinderChannel, BinderMessage, BinderServiceHandler};
 use crate::actor::binder::coroutine::BinderAsyncServiceMessage::{BindRequest, BindResponse, ControlTx, SignalTx};
+use crate::services::certificate::{CertificateServiceBinderRequest, CertificateServiceBinderResponse};
 use crate::tokio::{tokio_block_on, tokio_spawn};
 use crate::unwrap_variant;
 
@@ -40,7 +41,7 @@ impl<Q, R> BinderAsyncService<Q, R> where Q: Send + Sync + 'static, R: Send + Sy
     /// # Arguments
     /// * handler: A handler to handle queries
     ///
-    fn run(mut handler: Box<dyn BinderServiceHandler<Q, R>>) -> Self{
+    pub fn run(mut handler: Box<dyn BinderServiceHandler<Q, R>>) -> Self{
         let (service_tx, mut control_rx) = channel::<BinderAsyncServiceMessage<Q, R>>(ASYNC_BINDER_SERVICE_CHANNEL_BUFSIZE);
         tokio_spawn(async move {
             let (control_tx, mut service_rx) = channel::<BinderAsyncServiceMessage<Q, R>>(ASYNC_BINDER_SERVICE_CHANNEL_BUFSIZE);
@@ -128,8 +129,8 @@ impl<Q, R> BinderAsyncService<Q, R> where Q: Send + Sync + 'static, R: Send + Sy
     /// Creates new binder channel and returns it to caller
     ///
     /// * returns: Implementation of async binder channel
-    /// 
-    fn bind(&mut self) -> AsyncBinderChannelImpl<BinderMessage<Q, R>>{
+    ///
+    pub fn bind(&mut self) -> Box<dyn BinderChannel<BinderMessage<Q, R>>>{
         let (service_tx, local_rx) = channel::<BinderMessage<Q,R>>(ASYNC_BINDER_SERVICE_CHANNEL_BUFSIZE);
         let ctl_tx = self.control_tx.clone().unwrap();
         tokio_block_on(async{
@@ -139,7 +140,8 @@ impl<Q, R> BinderAsyncService<Q, R> where Q: Send + Sync + 'static, R: Send + Sy
         let recv_coroutine = self.control_rx.as_mut().unwrap().recv();
         let local_tx = tokio_block_on(recv_coroutine).unwrap();
         let local_tx= unwrap_variant!(local_tx, BindResponse);
-        AsyncBinderChannelImpl::new(Some(self.signal_tx.clone()), local_tx, local_rx)
+        let result = AsyncBinderChannelImpl::new(Some(self.signal_tx.clone()), local_tx, local_rx);
+        Box::new(result)
     }
 }
 
@@ -223,7 +225,7 @@ mod tests {
         let handler = Box::new(TestHandler);
         let mut service = BinderAsyncService::run(handler);
 
-        let mut binder_channel: &mut dyn BinderChannel<BinderMessage<u8, u8>> = &mut service.bind();
+        let mut binder_channel = service.bind();
 
         let request = 42;
         let expected_response = 43;

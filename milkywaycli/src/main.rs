@@ -4,6 +4,7 @@ mod bus;
 use std::path::Path;
 use std::rc::Rc;
 use colored::Colorize;
+use libmilkyway::actor::binder::coroutine::BinderAsyncService;
 use libmilkyway::module::loader::DynamicModule;
 use libmilkyway::services::certificate::CertificateService;
 use crate::bus::CLIDataBus;
@@ -31,5 +32,7 @@ fn main() {
         let mut modules = load_modules_from(modules_path);
     }
     let certificate_service = Box::new(crate::services::certificate::CertificateServiceImpl::new("/tmp/store.dat"));
-    let bus = CLIDataBus::new(Box::new(Rc::new(certificate_service)) as Box<dyn CertificateService>);
+    let mut service = BinderAsyncService::run(certificate_service);
+    let binder = service.bind();
+    binder.commit();
 }

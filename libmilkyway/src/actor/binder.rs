@@ -89,6 +89,13 @@ pub trait Binder<Q: Send + Sync, R: Send + Sync>: Send + Sync{
 /// A handler that used to receive messages and execute RPC commands
 ///
 pub trait BinderServiceHandler<Q, R>: Send + Sync where Q: Send + Sync, R: Send + Sync{
+    ///
+    /// Handles request and returns response
+    ///
+    /// # Arguments
+    /// * request: Q: query to service
+    ///
+    /// returns: R: response to query
     fn handle_message(&mut self, request: Q) -> R;
 }
 
@@ -120,6 +127,11 @@ impl<Q, R> Binder<Q, R> for dyn BinderChannel<BinderMessage<Q, R>>
     }
 }
 
+pub trait AsBoxedBinder<Q, R>
+    where Q: Send + Sync, R: Send + Sync{
+    fn as_boxed_binder(&self) -> impl Binder<Q, R>;
+}
+
 ///
 /// Asynchronous binder channel
 ///
@@ -136,6 +148,10 @@ pub struct AsyncBinderChannelImpl<T: Send + Sync>{
 impl<T> AsyncBinderChannelImpl<T> where T: Send + Sync {
     pub fn new(signal_tx: Option<Sender<bool>>, tx: Sender<T>, rx: Receiver<T>) -> Self {
         Self { signal_tx, tx, rx }
+    }
+
+    pub fn as_binder_channel(&mut self) -> &mut dyn BinderChannel<T>{
+        self
     }
 }
 

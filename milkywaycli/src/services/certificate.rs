@@ -4,10 +4,11 @@ use libmilkyway::serialization::error::SerializationError;
 use libmilkyway::serialization::serializable::Serialized;
 use libmilkyway::serialization::serializable::Serializable;
 use std::collections::HashMap;
+use libmilkyway::actor::binder::BinderServiceHandler;
 use libmilkyway::pki::certificate::Certificate;
 use libmilkyway::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
 use libmilkyway::pki::impls::certificates::kyber1024::Kyber1024Certificate;
-use libmilkyway::services::certificate::CertificateService;
+use libmilkyway::services::certificate::{CertificateService, CertificateServiceBinderRequest, CertificateServiceBinderResponse};
 use libmilkyway_derive::{Deserializable, Serializable};
 
 
@@ -199,6 +200,14 @@ impl CertificateService for CertificateServiceImpl {
     #[inline]
     fn commit(&self) {
         self.dump(&self.storage_file_name);
+    }
+}
+
+//FIXME: Still no idea why I ever should write this mess
+impl BinderServiceHandler<CertificateServiceBinderRequest, CertificateServiceBinderResponse> for CertificateServiceImpl {
+    fn handle_message(&mut self, request: CertificateServiceBinderRequest) -> CertificateServiceBinderResponse {
+        let mut ptr: &mut dyn CertificateService = self;
+        ptr.handle_message(request)
     }
 }
 
