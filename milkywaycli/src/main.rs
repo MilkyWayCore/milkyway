@@ -1,9 +1,12 @@
-mod services;
+pub mod services;
 mod bus;
 
 use std::path::Path;
+use std::rc::Rc;
 use colored::Colorize;
 use libmilkyway::module::loader::DynamicModule;
+use libmilkyway::services::certificate::CertificateService;
+use crate::bus::CLIDataBus;
 
 
 #[allow(unsafe_code)]
@@ -27,4 +30,6 @@ fn main() {
     unsafe {
         let mut modules = load_modules_from(modules_path);
     }
+    let certificate_service = Box::new(crate::services::certificate::CertificateServiceImpl::new("/tmp/store.dat"));
+    let bus = CLIDataBus::new(Box::new(Rc::new(certificate_service)) as Box<dyn CertificateService>);
 }

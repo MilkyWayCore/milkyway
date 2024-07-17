@@ -12,3 +12,17 @@ macro_rules! deserialize_and_check_errors {
         }
     };
 }
+
+
+///
+/// Unwraps exact variant of enum or panics
+/// 
+#[macro_export]
+macro_rules! unwrap_variant {
+    ($enum_value:expr, $variant:path) => {
+        match $enum_value {
+            $variant(value) => value,
+            _ => panic!("Expected {}, found {}", stringify!($variant), stringify!($enum_value)),
+        }
+    };
+}

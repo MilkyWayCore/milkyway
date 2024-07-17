@@ -43,6 +43,12 @@ pub mod services;
 /// 
 pub mod cli;
 
+
+///
+/// Actor-model architecture utilities
+/// 
+pub mod actor;
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 ///

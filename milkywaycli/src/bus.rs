@@ -3,13 +3,15 @@ use libmilkyway::services::certificate::CertificateService;
 use libmilkyway::services::name::NameService;
 use libmilkyway::transport::TransportService;
 
-
-#[derive(Clone)]
-pub struct CLIDataBus;
+pub struct CLIDataBus{
+    certificate_service: Box<dyn CertificateService>
+}
 
 impl CLIDataBus{
-    pub fn new() -> CLIDataBus{
-        CLIDataBus{}
+    pub fn new(certificate_service: Box<dyn CertificateService>) -> CLIDataBus{
+        CLIDataBus{
+            certificate_service,
+        }
     }
 }
 
@@ -26,3 +28,4 @@ impl ModuleDataBus for CLIDataBus{
         todo!()
     }
 }
+

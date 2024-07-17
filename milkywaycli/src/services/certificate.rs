@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use libmilkyway::serialization::deserializable::Deserializable;
 use libmilkyway::serialization::error::SerializationError;
 use libmilkyway::serialization::serializable::Serialized;
@@ -16,6 +17,17 @@ pub(crate) struct CertificateServiceImpl{
     root_certificate: Option<Falcon1024RootCertificate>,
     signing_certificates: HashMap<u128, Falcon1024Certificate>,
     encryption_certificates: HashMap<u128, Kyber1024Certificate>,
+}
+
+impl CertificateServiceImpl {
+    pub fn new(filename: &str) -> CertificateServiceImpl{
+        CertificateServiceImpl{
+            storage_file_name: filename.to_string(),
+            root_certificate: None,
+            signing_certificates: HashMap::new(),
+            encryption_certificates: HashMap::new(),
+        }
+    }
 }
 
 

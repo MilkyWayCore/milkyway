@@ -1,1 +1,1 @@
-mod certificate;
+pub mod certificate;
