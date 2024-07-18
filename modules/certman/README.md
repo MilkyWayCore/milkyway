@@ -27,3 +27,16 @@ Arguments:
 mway> certman/root/generate name=example.com
 Certificate generation successful
 ```
+
+#### `export`
+Full command: `certman/root/export`
+
+Arguments:
+* `file` file name to save root certificate to
+
+**Example**
+
+```
+mway> certman/root/export file=root.pqcert
+Export successful
+```

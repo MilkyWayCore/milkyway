@@ -1,11 +1,15 @@
+use std::path::Path;
 use std::sync::{Arc, Mutex};
-use colored::Colorize;
-use libmilkyway::cli::arguments::parse_arguments;
 
+use colored::Colorize;
+
+use libmilkyway::cli::arguments::parse_arguments;
+use libmilkyway::cli::io::confirm;
+use libmilkyway::serialization::serializable::Serializable;
 use libmilkyway::cli::router::CommandNamespace;
 use libmilkyway::cli::table::Table;
 use libmilkyway::pki::certificate::Certificate;
-use libmilkyway::pki::impls::certificates::falcon1024::{Falcon1024RootCertificate, generate_falcon1024_root_certificate};
+use libmilkyway::pki::impls::certificates::falcon1024::generate_falcon1024_root_certificate;
 use libmilkyway::services::certificate::{CertificateService, CertificateServiceBinder};
 
 pub struct RootNamespace{
@@ -47,9 +51,42 @@ impl RootNamespace {
         let certificate = generate_falcon1024_root_certificate(name);
         println!("Certificate generation successful");
         let mut binder = self.cert_binder.lock().unwrap();
+        let old_certificate = binder.get_root_certificate();
+        if old_certificate.is_some(){
+            if !confirm("Root certificate is already generated"){
+                return;
+            }
+        }
         binder.set_root_certificate(certificate);
         binder.commit();
         println!("Registered certificate in service");
+    }
+    
+    pub fn export(&mut self, arguments: Vec<String>){
+        let argmap = parse_arguments(arguments);
+        if !argmap.contains_key("file"){
+            println!("{} {}", "error:".red().bold().underline(), "Argument 'file' is required");
+            return;
+        }
+        let file = argmap.get("file").unwrap();
+        if file.is_none(){
+            println!("{} {}", "error:".red().bold().underline(), "Argument 'file' requires a value");
+            return;
+        }
+        let mut binder = self.cert_binder.lock().unwrap();
+        let certificate = binder.get_root_certificate();
+        if certificate.is_none(){
+            println!("{} {}", "error:".red().bold().underline(), "No root certificate is available");
+            return;
+        }
+        let certificate = certificate.unwrap();
+        if Path::new(&file.clone().unwrap()).exists(){
+            if !confirm("File already exists"){
+                return;
+            }
+        }
+        certificate.dump(&file.clone().unwrap());
+        println!("Export successful");
     }
 }
 
@@ -61,6 +98,9 @@ impl CommandNamespace for RootNamespace{
             }
             "generate" => {
                 self.generate(args);
+            }
+            "export" => {
+                self.export(args);
             }
             &_ => {
                 println!("{} {}", "error:".red().bold().underline(), "No such command");

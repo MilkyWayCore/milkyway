@@ -10,5 +10,10 @@ pub mod table;
 
 ///
 /// Arguments parsing
-/// 
+///
 pub mod arguments;
+
+///
+/// Interface IO utils for interacting with user
+/// 
+pub mod io;
