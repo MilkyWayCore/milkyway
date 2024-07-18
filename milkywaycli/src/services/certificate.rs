@@ -207,6 +207,22 @@ impl CertificateService for CertificateServiceImpl {
         self.root_certificate.clone()
     }
 
+    fn get_signing_certificates(&mut self) -> Vec<Falcon1024Certificate> {
+        let mut result = Vec::<Falcon1024Certificate>::new();
+        for certificate in self.signing_certificates.values(){
+            result.push(certificate.clone());
+        }
+        result
+    }
+
+    fn get_encryption_certificates(&mut self) -> Vec<Kyber1024Certificate> {
+        let mut result = Vec::<Kyber1024Certificate>::new();
+        for certificate in self.encryption_certificates.values(){
+            result.push(certificate.clone());
+        }
+        result
+    }
+
     #[inline]
     fn commit(&mut self) {
         self.dump(&self.storage_file_name);

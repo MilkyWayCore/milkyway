@@ -3,7 +3,7 @@ mod utils;
 
 use std::sync::{Arc, Mutex};
 use colored::Colorize;
-use libmilkyway::cli::router::{CommandNamespace, CommandRouter};
+use libmilkyway::cli::router::CommandRouter;
 use libmilkyway::message::common::Message;
 use libmilkyway::module::{CLIStatus, MilkywayModule, ModuleDataBus};
 use libmilkyway::module::CLIStatus::{Done, NamespaceChange};
@@ -37,7 +37,7 @@ impl MilkywayModule for CertmanModule {
     }
 
     fn on_load(&mut self, data_bus: Box<dyn ModuleDataBus>) {
-        let mut binder = Arc::new(Mutex::new(data_bus.get_certificate_service()));
+        let binder = Arc::new(Mutex::new(data_bus.get_certificate_service()));
         self.certificate_service = Some(binder.clone());
         self.router.register_namespace(vec!["certman".to_string(), "root".to_string()], 
                                        Box::new(RootNamespace::new(binder.clone())))

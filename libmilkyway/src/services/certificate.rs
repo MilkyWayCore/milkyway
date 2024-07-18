@@ -3,7 +3,7 @@ use crate::actor::binder::coroutine::BinderAsyncService;
 use crate::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
 use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
 use crate::services::certificate::CertificateServiceBinderRequest::SetSigningCertificate;
-use crate::services::certificate::CertificateServiceBinderResponse::{Falcon1024Cert, Kyber1024Cert, RootCert, Status};
+use crate::services::certificate::CertificateServiceBinderResponse::{Falcon1024Cert, Falcon1024Certs, Kyber1024Cert, Kyber1024Certs, RootCert, Status};
 use crate::unwrap_variant;
 
 
@@ -95,12 +95,23 @@ pub trait CertificateService: Send + Sync{
     ///
     /// Gets a root certificate
     ///
-    /// # Arguments
-    /// * serial: serial number of certificate to get
-    ///
     /// returns: Option<Falcon1024RootCertificate>: Either a certificate or None if no such certificate
     ///
     fn get_root_certificate(&mut self) -> Option<Falcon1024RootCertificate>;
+
+    ///
+    /// Gets all signing certificates
+    ///
+    /// returns: Vec<Falcon1024Certificate>: a vector of signing certificates
+    ///
+    fn get_signing_certificates(&mut self) -> Vec<Falcon1024Certificate>;
+
+    ///
+    /// Gets all encryption certificates
+    ///
+    /// returns: Vec<Kyber1024Certificate>: a vector of encryption certificates
+    ///
+    fn get_encryption_certificates(&mut self) -> Vec<Kyber1024Certificate>;
     
     ///
     /// Commits changes, i.e. writes new certificates to storage/sends to peers/etc.
@@ -117,6 +128,8 @@ pub enum CertificateServiceBinderRequest{
     GetSigningCertificate(u128),
     GetEncryptionCertificate(u128),
     GetRootCertificate,
+    GetEncryptionCertificates,
+    GetSigningCertificates,
     Commit,
 }
 
@@ -124,6 +137,8 @@ pub enum CertificateServiceBinderResponse{
     Falcon1024Cert(Option<Falcon1024Certificate>),
     Kyber1024Cert(Option<Kyber1024Certificate>),
     RootCert(Option<Falcon1024RootCertificate>),
+    Falcon1024Certs(Vec<Falcon1024Certificate>),
+    Kyber1024Certs(Vec<Kyber1024Certificate>),
     Status(bool),
 }
 
@@ -185,6 +200,14 @@ impl CertificateService for dyn BinderChannel<BinderMessage<CertificateServiceBi
         unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::GetRootCertificate), RootCert)
     }
 
+    fn get_signing_certificates(&mut self) -> Vec<Falcon1024Certificate> {
+       unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::GetSigningCertificates), Falcon1024Certs)
+    }
+
+    fn get_encryption_certificates(&mut self) -> Vec<Kyber1024Certificate> {
+        unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::GetEncryptionCertificates), Kyber1024Certs)
+    }
+
     #[inline]
     fn commit(&mut self) {
         let result = unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::Commit), Status);
@@ -235,6 +258,12 @@ impl BinderServiceHandler<CertificateServiceBinderRequest,
             }
             CertificateServiceBinderRequest::GetRootCertificate => {
                 RootCert(self.get_root_certificate())
+            }
+            CertificateServiceBinderRequest::GetSigningCertificates => {
+                Falcon1024Certs(self.get_signing_certificates())
+            }
+            CertificateServiceBinderRequest::GetEncryptionCertificates => {
+                Kyber1024Certs(self.get_encryption_certificates())
             }
             CertificateServiceBinderRequest::Commit => {
                 self.commit();
