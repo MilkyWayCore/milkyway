@@ -1,16 +1,20 @@
+use std::sync::{Arc, Mutex};
+use libmilkyway::actor::binder::coroutine::BinderAsyncService;
 use libmilkyway::module::ModuleDataBus;
-use libmilkyway::services::certificate::CertificateService;
+use libmilkyway::services::certificate::{CertificateAsyncService, CertificateServiceBinder};
 use libmilkyway::services::name::NameService;
 use libmilkyway::transport::TransportService;
 
 pub struct CLIDataBus{
-    certificate_service: Box<dyn CertificateService>
+    certificate_service: Arc<Mutex<CertificateAsyncService>>,
 }
 
 impl CLIDataBus{
-    pub fn new(certificate_service: Box<dyn CertificateService>) -> CLIDataBus{
+    pub fn new() -> CLIDataBus{
+        let service = Box::new(crate::services::certificate::CertificateServiceImpl::new("/tmp/store.dat"));
+        let service = BinderAsyncService::run(service);
         CLIDataBus{
-            certificate_service,
+            certificate_service: Arc::new(Mutex::new(service)),
         }
     }
 }
@@ -24,8 +28,8 @@ impl ModuleDataBus for CLIDataBus{
         todo!()
     }
 
-    fn get_certificate_service(&self) -> Box<dyn CertificateService> {
-        todo!()
+    fn get_certificate_service(&self) -> Box<CertificateServiceBinder> {
+        self.certificate_service.lock().unwrap().bind()
     }
 }
 

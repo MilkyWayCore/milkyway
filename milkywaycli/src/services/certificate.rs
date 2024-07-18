@@ -96,7 +96,7 @@ impl CertificateService for CertificateServiceImpl {
         true
     }
 
-    fn verify_signing_certificate(&self, cert: &Falcon1024Certificate) -> bool {
+    fn verify_signing_certificate(&mut self, cert: &Falcon1024Certificate) -> bool {
         let mut current_serial = cert.get_serial();
         let mut current_cert = cert.clone();
         loop{
@@ -149,7 +149,7 @@ impl CertificateService for CertificateServiceImpl {
         }
     }
 
-    fn verify_encryption_certificate(&self, cert: &Kyber1024Certificate) -> bool {
+    fn verify_encryption_certificate(&mut self, cert: &Kyber1024Certificate) -> bool {
         let parent_id = cert.get_parent_serial();
         if parent_id.is_none(){
             // Unsigned certificate
@@ -174,7 +174,7 @@ impl CertificateService for CertificateServiceImpl {
         return parent.verify_signature(&cert.clone_without_signature_and_sk(), &signature);
     }
 
-    fn get_signing_certificate(&self, serial: u128) -> Option<Falcon1024Certificate> {
+    fn get_signing_certificate(&mut self, serial: u128) -> Option<Falcon1024Certificate> {
         let result = self.signing_certificates.get(&serial);
         if result.is_none(){
             None
@@ -183,7 +183,7 @@ impl CertificateService for CertificateServiceImpl {
         }
     }
 
-    fn get_encryption_certificate(&self, serial: u128) -> Option<Kyber1024Certificate> {
+    fn get_encryption_certificate(&mut self, serial: u128) -> Option<Kyber1024Certificate> {
         let result = self.encryption_certificates.get(&serial);
         if result.is_none(){
             None
@@ -193,12 +193,12 @@ impl CertificateService for CertificateServiceImpl {
     }
 
     #[inline]
-    fn get_root_certificate(&self) -> Option<Falcon1024RootCertificate> {
+    fn get_root_certificate(&mut self) -> Option<Falcon1024RootCertificate> {
         self.root_certificate.clone()
     }
 
     #[inline]
-    fn commit(&self) {
+    fn commit(&mut self) {
         self.dump(&self.storage_file_name);
     }
 }

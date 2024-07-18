@@ -2,11 +2,11 @@ pub mod services;
 mod bus;
 
 use std::path::Path;
-use std::rc::Rc;
 use colored::Colorize;
 use libmilkyway::actor::binder::coroutine::BinderAsyncService;
 use libmilkyway::module::loader::DynamicModule;
 use libmilkyway::services::certificate::CertificateService;
+use libmilkyway::tokio::init_tokio;
 use crate::bus::CLIDataBus;
 
 
@@ -26,6 +26,7 @@ unsafe fn load_modules_from(dir_path: &Path) -> Vec<DynamicModule> {
 }
 
 fn main() {
+    init_tokio();
     let mut known_commands = Vec::<String>::new();
     let modules_path = Path::new(".");
     unsafe {
@@ -33,6 +34,6 @@ fn main() {
     }
     let certificate_service = Box::new(crate::services::certificate::CertificateServiceImpl::new("/tmp/store.dat"));
     let mut service = BinderAsyncService::run(certificate_service);
-    let binder = service.bind();
+    let mut binder = service.bind();
     binder.commit();
 }

@@ -7,7 +7,6 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 use crate::actor::binder::{AsyncBinderChannelImpl, BinderChannel, BinderMessage, BinderServiceHandler};
 use crate::actor::binder::coroutine::BinderAsyncServiceMessage::{BindRequest, BindResponse, ControlTx, SignalTx};
-use crate::services::certificate::{CertificateServiceBinderRequest, CertificateServiceBinderResponse};
 use crate::tokio::{tokio_block_on, tokio_spawn};
 use crate::unwrap_variant;
 
@@ -52,7 +51,7 @@ impl<Q, R> BinderAsyncService<Q, R> where Q: Send + Sync + 'static, R: Send + Sy
             let mut binder_channels  = HashMap::<usize, AsyncBinderChannelImpl::<BinderMessage<Q, R>>>::new();
             loop {
                 signal_rx.recv().await.expect("Signal communication failure");
-                println!("New message");
+                //println!("New message");
                 let message = service_rx.try_recv();
                 if message.is_ok() {
                     let message = message.unwrap();
@@ -100,17 +99,15 @@ impl<Q, R> BinderAsyncService<Q, R> where Q: Send + Sync + 'static, R: Send + Sy
                         }
                     }
                 }
-                println!("unbinded={:?}", unbinded);
+                //println!("unbinded={:?}", unbinded);
                 for key in unbinded.iter(){
-                    println!("Removing {:?}", key);
-                    let mut channel = binder_channels.get_mut(&key).unwrap();
-                    channel.tx.closed();
+                    //println!("Removing {:?}", key);
+                    let channel = binder_channels.get_mut(&key).unwrap();
                     channel.rx.close();
                     binder_channels.remove(&key);
                 }
-                println!("iter");
+                //println!("iter");
             }
-            panic!("Service died!");
         });
         let (msg_ctl, msg_sig) = tokio_block_on(async {
             (control_rx.recv().await.unwrap(), control_rx.recv().await.unwrap())
@@ -149,13 +146,10 @@ impl<Q, R> BinderAsyncService<Q, R> where Q: Send + Sync + 'static, R: Send + Sy
 mod tests {
     use std::time::Duration;
     use super::*;
-    use tokio::sync::mpsc::channel;
     use tokio::time::sleep;
-    use crate::actor::binder::{AsyncBinderChannelImpl, Binder, BinderChannel, BinderMessage, BinderServiceHandler};
+    use crate::actor::binder::{Binder, BinderMessage, BinderServiceHandler};
     use crate::actor::binder::BinderMessage::Unbind;
-    use crate::actor::binder::coroutine::BinderAsyncServiceMessage::{BindRequest, BindResponse, ControlTx, SignalTx};
-    use crate::tokio::{init_tokio, tokio_block_on, tokio_spawn};
-    use crate::unwrap_variant;
+    use crate::tokio::{init_tokio, tokio_block_on};
 
     struct TestHandler;
 

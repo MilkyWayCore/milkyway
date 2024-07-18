@@ -1,7 +1,7 @@
 pub mod loader;
 
 use crate::message::common::Message;
-use crate::services::certificate::CertificateService;
+use crate::services::certificate::{CertificateService, CertificateServiceBinder};
 use crate::services::name::NameService;
 use crate::transport::TransportService;
 
@@ -30,7 +30,7 @@ pub trait ModuleDataBus: Send + Sync{
     ///
     /// returns: Box<dyn CertificateService>: a boxed trait object of a CertificateService
     ///
-    fn get_certificate_service(&self) -> Box<dyn CertificateService>;
+    fn get_certificate_service(&self) -> Box<CertificateServiceBinder>;
 }
 
 ///

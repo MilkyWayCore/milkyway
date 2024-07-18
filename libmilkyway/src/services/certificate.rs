@@ -1,6 +1,10 @@
 use crate::actor::binder::{Binder, BinderChannel, BinderMessage, BinderServiceHandler};
+use crate::actor::binder::coroutine::BinderAsyncService;
 use crate::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
 use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
+use crate::services::certificate::CertificateServiceBinderRequest::SetSigningCertificate;
+use crate::services::certificate::CertificateServiceBinderResponse::{Falcon1024Cert, Kyber1024Cert, RootCert, Status};
+use crate::unwrap_variant;
 
 
 pub const ROOT_CERTIFICATE_SERIAL: u128 = 0;
@@ -57,7 +61,7 @@ pub trait CertificateService: Send + Sync{
     /// 
     /// returns: bool: whether certificate is valid
     /// 
-    fn verify_signing_certificate(&self, cert: &Falcon1024Certificate) -> bool;
+    fn verify_signing_certificate(&mut self, cert: &Falcon1024Certificate) -> bool;
     
     ///
     /// Verifies encryption certificate
@@ -66,7 +70,7 @@ pub trait CertificateService: Send + Sync{
     /// * cert: certificate to verify
     /// 
     /// returns: bool: whether certificate is valid
-    fn verify_encryption_certificate(&self, cert: &Kyber1024Certificate) -> bool;
+    fn verify_encryption_certificate(&mut self, cert: &Kyber1024Certificate) -> bool;
     
     ///
     /// Gets signing certificate
@@ -76,7 +80,7 @@ pub trait CertificateService: Send + Sync{
     /// 
     /// returns: Option<Falcon1024Certificate>: Either a certificate or None if no such certificate
     /// 
-    fn get_signing_certificate(&self, serial: u128) -> Option<Falcon1024Certificate>;
+    fn get_signing_certificate(&mut self, serial: u128) -> Option<Falcon1024Certificate>;
 
     ///
     /// Gets signing certificate
@@ -86,7 +90,7 @@ pub trait CertificateService: Send + Sync{
     ///
     /// returns: Option<Kyber1024Certificate>: Either a certificate or None if no such certificate
     ///
-    fn get_encryption_certificate(&self, serial: u128) -> Option<Kyber1024Certificate>;
+    fn get_encryption_certificate(&mut self, serial: u128) -> Option<Kyber1024Certificate>;
 
     ///
     /// Gets a root certificate
@@ -96,12 +100,12 @@ pub trait CertificateService: Send + Sync{
     ///
     /// returns: Option<Falcon1024RootCertificate>: Either a certificate or None if no such certificate
     ///
-    fn get_root_certificate(&self) -> Option<Falcon1024RootCertificate>;
+    fn get_root_certificate(&mut self) -> Option<Falcon1024RootCertificate>;
     
     ///
     /// Commits changes, i.e. writes new certificates to storage/sends to peers/etc.
     /// 
-    fn commit(&self);
+    fn commit(&mut self);
 }
 
 pub enum CertificateServiceBinderRequest{
@@ -119,6 +123,8 @@ pub enum CertificateServiceBinderRequest{
 pub enum CertificateServiceBinderResponse{
     Falcon1024Cert(Option<Falcon1024Certificate>),
     Kyber1024Cert(Option<Kyber1024Certificate>),
+    RootCert(Option<Falcon1024RootCertificate>),
+    Status(bool),
 }
 
 ///
@@ -132,57 +138,108 @@ impl CertificateService for dyn BinderChannel<BinderMessage<CertificateServiceBi
 
     #[inline]
     fn set_root_certificate(&mut self, root_cert: Falcon1024RootCertificate) {
-        todo!()
+        let result = unwrap_variant!(self.handle_request(SetSigningCertificate(root_cert)),
+            Status);
+        if !result{
+            panic!("Can not set root certificate!");
+        }
     }
 
     #[inline]
     fn add_signing_certificate(&mut self, cert: Falcon1024Certificate) -> bool {
-        todo!()
+        let result = unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::AddSigningCertificate(cert)), Status);
+        result
     }
 
     #[inline]
     fn add_encryption_certificate(&mut self, cert: Kyber1024Certificate) -> bool {
-        todo!()
+        let result = unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::AddEncryptionCertificate(cert)),
+            Status);
+        result
     }
 
     #[inline]
-    fn verify_signing_certificate(&self, cert: &Falcon1024Certificate) -> bool {
-        todo!()
+    fn verify_signing_certificate(&mut self, cert: &Falcon1024Certificate) -> bool {
+        let result = unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::VerifySigningCertificate(cert.clone())), Status);
+        result
     }
 
     #[inline]
-    fn verify_encryption_certificate(&self, cert: &Kyber1024Certificate) -> bool {
-        todo!()
+    fn verify_encryption_certificate(&mut self, cert: &Kyber1024Certificate) -> bool {
+        let result = unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::VerifyEncryptionCertificate(cert.clone())), Status);
+        result
     }
 
     #[inline]
-    fn get_signing_certificate(&self, serial: u128) -> Option<Falcon1024Certificate> {
-        todo!()
+    fn get_signing_certificate(&mut self, serial: u128) -> Option<Falcon1024Certificate> {
+        unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::GetSigningCertificate(serial)), Falcon1024Cert)
     }
 
     #[inline]
-    fn get_encryption_certificate(&self, serial: u128) -> Option<Kyber1024Certificate> {
-        todo!()
+    fn get_encryption_certificate(&mut self, serial: u128) -> Option<Kyber1024Certificate> {
+        unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::GetEncryptionCertificate(serial)), Kyber1024Cert)
     }
 
     #[inline]
-    fn get_root_certificate(&self) -> Option<Falcon1024RootCertificate> {
-        todo!()
+    fn get_root_certificate(&mut self) -> Option<Falcon1024RootCertificate> {
+        unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::GetRootCertificate), RootCert)
     }
 
     #[inline]
-    fn commit(&self) {
-        todo!()
+    fn commit(&mut self) {
+        let result = unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::Commit), Status);
+        if !result{
+            panic!("Remote commit failed");
+        }
     }
 }
 
+///
+/// A common service handler for CertificateService
+/// 
 pub type CertificateServiceHandler = dyn BinderServiceHandler<CertificateServiceBinderRequest,
+    CertificateServiceBinderResponse>;
+
+///
+/// Asynchornous certificate service
+/// 
+pub type CertificateAsyncService = BinderAsyncService<CertificateServiceBinderRequest, 
     CertificateServiceBinderResponse>;
 
 impl BinderServiceHandler<CertificateServiceBinderRequest, 
     CertificateServiceBinderResponse> for dyn CertificateService {
     fn handle_message(&mut self, 
                       request: CertificateServiceBinderRequest) -> CertificateServiceBinderResponse {
-        todo!()
+        match request {
+            CertificateServiceBinderRequest::AddEncryptionCertificate(certificate) => {
+                Status(self.add_encryption_certificate(certificate))
+            }
+            CertificateServiceBinderRequest::AddSigningCertificate(certificate) => {
+                Status(self.add_signing_certificate(certificate))
+            }
+            CertificateServiceBinderRequest::SetSigningCertificate(root_certificate) => {
+                self.set_root_certificate(root_certificate);
+                Status(true)
+            }
+            CertificateServiceBinderRequest::VerifySigningCertificate(certificate) => {
+                Status(self.verify_signing_certificate(&certificate))
+            }
+            CertificateServiceBinderRequest::VerifyEncryptionCertificate(certificate) => {
+                Status(self.verify_encryption_certificate(&certificate))
+            }
+            CertificateServiceBinderRequest::GetSigningCertificate(serial) => {
+                Falcon1024Cert(self.get_signing_certificate(serial))
+            }
+            CertificateServiceBinderRequest::GetEncryptionCertificate(serial) => {
+                Kyber1024Cert(self.get_encryption_certificate(serial))
+            }
+            CertificateServiceBinderRequest::GetRootCertificate => {
+                RootCert(self.get_root_certificate())
+            }
+            CertificateServiceBinderRequest::Commit => {
+                self.commit();
+                Status(true)
+            }
+        }
     }
 }

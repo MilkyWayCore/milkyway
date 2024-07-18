@@ -188,7 +188,6 @@ mod tests {
     #[test]
     fn test_send_receive_message() {
         init_tokio();
-        let (dummy_tx, _) = channel::<bool>(1);
         let (_service_tx, client_rx) = channel::<String>(10);
         let (client_tx, mut service_rx) = channel::<String>(10);
         let mut binder_channel = AsyncBinderChannelImpl::new(None, client_tx, client_rx);
@@ -204,7 +203,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_is_alive() {
-        let (dummy_tx, _) = channel::<bool>(1);
         let (tx, rx) = channel::<String>(10);
         let binder_channel = AsyncBinderChannelImpl::new(None, tx, rx);
 
@@ -216,7 +214,6 @@ mod tests {
     #[test]
     fn test_handle_request() {
         init_tokio();
-        let (dummy_tx, _) = channel::<bool>(1);
         let (service_tx, client_rx) = channel::<TestMessage>(10);
         let (client_tx, mut service_rx) = channel::<TestMessage>(10);
         let binder_channel: &mut dyn BinderChannel<TestMessage> = &mut AsyncBinderChannelImpl::<TestMessage>::new(None, client_tx, client_rx) as &mut dyn BinderChannel<TestMessage>;
