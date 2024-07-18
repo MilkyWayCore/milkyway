@@ -8,8 +8,6 @@ use std::path::Path;
 use std::process::exit;
 use colored::Colorize;
 use libmilkyway::module::loader::DynamicModule;
-use libmilkyway::module::MilkywayModule;
-use libmilkyway::services::certificate::CertificateService;
 use libmilkyway::tokio::init_tokio;
 use crate::bus::CLIDataBus;
 use crate::cli::CLIController;
@@ -38,13 +36,17 @@ unsafe fn load_modules_from(dir_path: &Path) -> Vec<DynamicModule> {
         if metadata.is_dir(){
             continue;
         }
-        let fname = entry.file_name();
+        let fname = entry.path();
         let fname = fname.to_str().unwrap();
-        let module = DynamicModule::load(fname);
+        let module = 
+        unsafe {
+            DynamicModule::load(fname)
+        };
         if module.is_err() {
             println!("{}{}{} {}{}", "warning:".yellow().bold().underline(), " ".clear(),
                      "Failed to load module:".bold(), "".clear(),
                      fname);
+            //println!("{:?}", module.err().unwrap());
             continue;
         }
         result.push(module.unwrap());
@@ -69,7 +71,8 @@ fn main() {
         println!("{}:{}", "error".red().bold().underline(), " no storage_path in configuration".clear());
     }
     let storage_path = storage_path_option.unwrap();
-    let certificate_store_path = storage_path.join(Path::new("certs.dat")).as_path();
+    let binding = storage_path.join(Path::new("certs.dat"));
+    let certificate_store_path = binding.as_path();
     let modules_path_option = configuration.get_modules_path();
     let modules_path = if modules_path_option.is_none(){
         Path::new("/opt/mway/lib/modules")
@@ -85,11 +88,11 @@ fn main() {
 
     // Create data bus
     // It will also start services
-    let mut data_bus = CLIDataBus::new(modules_path.to_str().unwrap());
+    let data_bus = CLIDataBus::new(certificate_store_path.to_str().unwrap());
 
     //Now tell all modules they are loaded
-    for module in &modules{
-        module.get_instance().on_load(Box::new(data_bus.clone()));
+    for module in &mut modules{
+        module.instance.on_load(Box::new(data_bus.clone()));
     }
 
     // Create a CLI controller

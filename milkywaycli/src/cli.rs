@@ -1,11 +1,10 @@
-use std::fmt::Arguments;
 use std::io::{BufRead, stdin, stdout, Write};
 use colored::Colorize;
 use libmilkyway::module::loader::DynamicModule;
 
 ///
 /// Stores state of CLI and handles commands
-/// 
+///
 pub(crate) struct CLIController{
     known_commands: Vec<String>,
     modules: Vec<DynamicModule>,
@@ -14,30 +13,30 @@ pub(crate) struct CLIController{
 impl CLIController {
     ///
     /// Creates a CLIController with given modules
-    /// 
+    ///
     /// # Arguments
     /// * modules: Vec<DynamicModule>: a vector of modules
-    /// 
+    ///
     /// returns: CLIController: new CLI controller
-    /// 
-    pub fn new(modules: Vec<DynamicModule>) -> Self{
+    ///
+    pub fn new(mut modules: Vec<DynamicModule>) -> Self{
         let mut known_commands = Vec::<String>::new();
-        for module in &modules{
-            known_commands.extend(module.get_instance().get_commands());
+        for module in &mut modules{
+            known_commands.extend(module.instance.get_commands());
         }
         CLIController{
             known_commands,
             modules,
         }
     }
-    
+
     ///
     /// Handles exactly one command from CLI
-    /// 
+    ///
     /// # Arguments
     /// * command_path: String: a path to command in format of "module/namespace/subnamespace/command"
     /// * arguments: Vec<String>: vector of arguments to command
-    /// 
+    ///
     pub fn handle_command(&mut self, command_path: String, arguments: Vec<String>) -> bool{
         let namespaces: Vec<&str> = command_path.split("/").collect();
         if namespaces.len() == 0{
@@ -49,24 +48,24 @@ impl CLIController {
         }
         let toplevel_command = namespaces[0];
         if !self.known_commands.contains(&toplevel_command.to_string()){
-             println!("{}: {}{}", "error".red().bold().underline(), "unknown command: ".clear(), 
+             println!("{}: {}{}", "error".red().bold().underline(), "unknown command: ".clear(),
                       toplevel_command);
             return false;
         }
-        for module in &self.modules{
-            module.get_instance().on_cli_command(string_namespaces.clone(), arguments.clone());
+        for module in &mut self.modules{
+            module.instance.on_cli_command(string_namespaces.clone(), arguments.clone());
         }
         true
     }
-    
+
     ///
     /// Parses command to path and arguments
-    /// 
+    ///
     /// # Arguments
     /// * cmdline: A commandline String
-    /// 
+    ///
     /// returns: (String, Vec<String>): command and its arguments
-    /// 
+    ///
     fn parse_command(cmdline: String) -> (String, Vec<String>){
         let command_line: Vec<&str> = cmdline.split(" ").collect();
         if command_line.len() == 0{
@@ -79,10 +78,10 @@ impl CLIController {
         }
         (command, arguments)
     }
-    
+
     ///
     /// Runs a CLI
-    /// 
+    ///
     pub fn run(&mut self){
         loop {
             print!("{}{}", "mway>".bold().underline(), " ".clear());

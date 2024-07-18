@@ -6,27 +6,25 @@ use std::sync::Arc;
 use crate::module::MilkywayModule;
 
 pub struct DynamicModule {
-    instance: *mut dyn MilkywayModule,
+    pub instance: Box<dyn MilkywayModule>,
+    _library: Library,
 }
 
 impl DynamicModule {
     pub unsafe fn load(path: &str) -> Result<DynamicModule, Box<dyn std::error::Error>> {
-        let library = Arc::new(Library::new(path)?);
-
+        let library =Library::new(path).unwrap();
+        type Constructor = unsafe fn() -> *mut dyn MilkywayModule;
+        let instance: Box<dyn MilkywayModule>;
         unsafe {
-            let create: Symbol<extern "C" fn() -> *mut dyn MilkywayModule> = library
+            let create: Symbol<Constructor> = library
                 .get(b"create")
                 .unwrap();
 
-            let instance = create();
-
-            Ok(DynamicModule {
-                instance,
-            })
+            instance = Box::from_raw(create());
         }
-    }
-
-    pub fn get_instance(&self) -> &mut dyn MilkywayModule {
-        unsafe { &mut *self.instance }
+        Ok(DynamicModule {
+            instance,
+            _library: library,
+        })
     }
 }

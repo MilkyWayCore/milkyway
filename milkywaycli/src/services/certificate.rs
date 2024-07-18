@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use libmilkyway::serialization::deserializable::Deserializable;
 use libmilkyway::serialization::error::SerializationError;
 use libmilkyway::serialization::serializable::Serialized;
@@ -56,7 +55,7 @@ impl CertificateService for CertificateServiceImpl {
             println!("No parent\n");
             return false;
         }
-        let parent_serial = parent_serial.unwrap();
+        //let parent_serial = parent_serial.unwrap();
         if self.signing_certificates.contains_key(&serial)
             || self.encryption_certificates.contains_key(&serial) || serial == 0 {
             // Certificate collision
@@ -80,7 +79,7 @@ impl CertificateService for CertificateServiceImpl {
             println!("Orphaned\n");
             return false;
         }
-        let parent_serial = parent_serial.unwrap();
+        //let parent_serial = parent_serial.unwrap();
         if !self.verify_encryption_certificate(&cert){
             // Tampered certificate?
             println!("Tampered\n");
@@ -206,7 +205,7 @@ impl CertificateService for CertificateServiceImpl {
 //FIXME: Still no idea why I ever should write this mess
 impl BinderServiceHandler<CertificateServiceBinderRequest, CertificateServiceBinderResponse> for CertificateServiceImpl {
     fn handle_message(&mut self, request: CertificateServiceBinderRequest) -> CertificateServiceBinderResponse {
-        let mut ptr: &mut dyn CertificateService = self;
+        let ptr: &mut dyn CertificateService = self;
         ptr.handle_message(request)
     }
 }
