@@ -4,7 +4,7 @@ use std::collections::HashMap;
 /// CommandNamespace is a trait which implements on namespace of commands
 /// E.g. it implements everything in `certman/encryption`
 ///
-pub trait CommandNamespace{
+pub trait CommandNamespace: Send + Sync{
     fn on_command(&mut self, command: String, args: Vec<String>);
 }
 
@@ -15,6 +15,7 @@ pub trait CommandNamespace{
 ///
 pub struct CommandRouter{
     namespaces: HashMap<Vec<String>, Box<dyn CommandNamespace>>,
+    subnamespaces: Vec<Vec<String>>,
 }
 
 impl CommandRouter {
@@ -25,6 +26,7 @@ impl CommandRouter {
     pub fn new() -> CommandRouter{
         CommandRouter{
             namespaces: HashMap::new(),
+            subnamespaces: vec![],
         }
     }
     
@@ -44,6 +46,12 @@ impl CommandRouter {
                               namespace: Box<dyn CommandNamespace>){
         if self.namespaces.contains_key(&namespace_path){
             panic!("Namespace is already registered");
+        }
+        for i in 1..namespace_path.len(){
+            let subpath = namespace_path[0..i].to_vec();
+            if !self.subnamespaces.contains(&subpath){
+                self.subnamespaces.push(subpath);
+            }
         }
         self.namespaces.insert(namespace_path, namespace);
     }
@@ -72,6 +80,20 @@ impl CommandRouter {
         }
         self.namespaces.get_mut(&namespace).unwrap().on_command(command_name.clone(), arguments);
         true
+    }
+    
+    
+    ///
+    /// Checks that given path is known namespace
+    /// 
+    /// # Arguments
+    /// * path: Vec<String>: Path to check
+    /// 
+    /// returns: true if path is a namespace, false otherwise
+    /// 
+    #[inline]
+    pub fn is_namespace(&self, path: &Vec<String>) -> bool{
+        self.namespaces.contains_key(path) || self.subnamespaces.contains(path)
     }
 }
 

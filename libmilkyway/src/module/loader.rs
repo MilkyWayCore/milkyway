@@ -2,7 +2,6 @@
 /* WARNING: Unsafe code ahead */
 #[allow(unsafe_code)]
 use libloading::{Library, Symbol};
-use std::sync::Arc;
 use crate::module::MilkywayModule;
 
 pub struct DynamicModule {

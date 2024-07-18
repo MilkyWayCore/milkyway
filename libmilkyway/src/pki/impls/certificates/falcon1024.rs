@@ -2,7 +2,7 @@ use libmilkyway_derive::{Deserializable, Serializable};
 use crate::pki::certificate::{Certificate, CertificateType};
 use crate::pki::certificate::CertificateType::{RootCertificate,
                                                SigningCertificate};
-use crate::pki::impls::keys::falcon1024::{Falcon1024PublicKey, Falcon1024SecretKey};
+use crate::pki::impls::keys::falcon1024::{Falcon1024PublicKey, Falcon1024SecretKey, generate_falcon1024_keypair};
 use crate::pki::signature::Signature;
 use crate::serialization::deserializable::Deserializable;
 use crate::serialization::error::SerializationError;
@@ -129,6 +129,15 @@ impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024RootCer
     #[inline]
     fn get_name(&self) -> String {
         self.name.clone()
+    }
+}
+
+pub fn generate_falcon1024_root_certificate(name: String) -> Falcon1024RootCertificate{
+    let (root_public_key, root_secret_key) = generate_falcon1024_keypair();
+    Falcon1024RootCertificate {
+        secret_key: Some(root_secret_key),
+        public_key: root_public_key.clone(),
+        name,
     }
 }
 

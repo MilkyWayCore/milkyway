@@ -38,7 +38,7 @@ unsafe fn load_modules_from(dir_path: &Path) -> Vec<DynamicModule> {
         }
         let fname = entry.path();
         let fname = fname.to_str().unwrap();
-        let module = 
+        let module =
         unsafe {
             DynamicModule::load(fname)
         };

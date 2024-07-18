@@ -3,6 +3,7 @@ use libmilkyway::serialization::error::SerializationError;
 use libmilkyway::serialization::serializable::Serialized;
 use libmilkyway::serialization::serializable::Serializable;
 use std::collections::HashMap;
+use std::path::Path;
 use libmilkyway::actor::binder::BinderServiceHandler;
 use libmilkyway::pki::certificate::Certificate;
 use libmilkyway::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
@@ -20,6 +21,9 @@ pub(crate) struct CertificateServiceImpl{
 }
 
 impl CertificateServiceImpl {
+    ///
+    /// Creates a new CertificateServiceImpl storing data in provided file
+    /// 
     pub fn new(filename: &str) -> CertificateServiceImpl{
         CertificateServiceImpl{
             storage_file_name: filename.to_string(),
@@ -27,6 +31,13 @@ impl CertificateServiceImpl {
             signing_certificates: HashMap::new(),
             encryption_certificates: HashMap::new(),
         }
+    }
+    
+    #[inline]
+    pub fn load_from_file(file: &str) -> CertificateServiceImpl{
+        let mut service = CertificateServiceImpl::from_file(Path::new(file)).expect("Failed to load certificate storage");
+        service.storage_file_name = file.to_string();
+        service
     }
 }
 

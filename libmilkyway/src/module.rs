@@ -6,6 +6,14 @@ use crate::services::name::NameService;
 use crate::transport::TransportService;
 
 ///
+/// A enum for storing data about CLI commands result
+/// 
+pub enum CLIStatus{
+    Done,
+    NamespaceChange(Vec<String>),
+}
+
+///
 /// A data bus for modules
 /// Allows exchanging data between modules and MilkyWay on a local machine
 ///
@@ -71,7 +79,7 @@ pub trait MilkywayModule: Send + Sync{
     /// ```sh
     /// mway certman/encryption/generate name="my_encryption_cert"
     ///```
-    fn on_cli_command(&self, command: Vec<String>, arguments: Vec<String>);
+    fn on_cli_command(&mut self, command: Vec<String>, arguments: Vec<String>) -> CLIStatus;
 
     ///
     /// Handles message on milkyway server

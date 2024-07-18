@@ -1,5 +1,6 @@
 use std::io::{BufRead, stdin, stdout, Write};
 use colored::Colorize;
+use libmilkyway::module::CLIStatus;
 use libmilkyway::module::loader::DynamicModule;
 
 ///
@@ -8,6 +9,7 @@ use libmilkyway::module::loader::DynamicModule;
 pub(crate) struct CLIController{
     known_commands: Vec<String>,
     modules: Vec<DynamicModule>,
+    current_namespace: Vec<String>,
 }
 
 impl CLIController {
@@ -27,6 +29,7 @@ impl CLIController {
         CLIController{
             known_commands,
             modules,
+            current_namespace: Vec::<String>::new(),
         }
     }
 
@@ -42,18 +45,24 @@ impl CLIController {
         if namespaces.len() == 0{
             return false;
         }
-        let mut string_namespaces = Vec::<String>::new();
+        let mut string_namespaces = self.current_namespace.clone();
         for s in &namespaces{
             string_namespaces.push(s.to_string());
         }
-        let toplevel_command = namespaces[0];
+        //println!("{:?}", string_namespaces);
+        let toplevel_command = string_namespaces[0].clone();
         if !self.known_commands.contains(&toplevel_command.to_string()){
              println!("{}: {}{}", "error".red().bold().underline(), "unknown command: ".clear(),
                       toplevel_command);
             return false;
         }
         for module in &mut self.modules{
-            module.instance.on_cli_command(string_namespaces.clone(), arguments.clone());
+            match module.instance.on_cli_command(string_namespaces.clone(), arguments.clone()){
+                CLIStatus::NamespaceChange(path) => {
+                    self.current_namespace = path;
+                }
+                CLIStatus::Done => {}
+            }
         }
         true
     }
@@ -78,18 +87,37 @@ impl CLIController {
         }
         (command, arguments)
     }
+    
+    fn get_namespace_str(&self) -> String{
+        if self.current_namespace.len() == 0{
+            return "".to_string();
+        }
+        let mut result = " ".to_string();
+        for part in self.current_namespace.iter(){
+            result = result + "/" + part;
+        }
+        result
+    }
 
     ///
     /// Runs a CLI
     ///
     pub fn run(&mut self){
         loop {
-            print!("{}{}", "mway>".bold().underline(), " ".clear());
+            print!("{}{}>{}", "mway".bold().underline(), self.get_namespace_str().blue(), " ".clear());
             stdout().flush().expect("Flushing failed");
             let cmdline = stdin().lock().lines().next().unwrap();
             let (command, arguments) = Self::parse_command(cmdline.unwrap());
             if command == "quit" || command == "exit"{
                 break;
+            }
+            if command == ".." && self.current_namespace.len() > 0{
+                self.current_namespace.pop();
+                continue;
+            }
+            if command == "/"{
+                self.current_namespace = vec![];
+                continue;
             }
             self.handle_command(command, arguments);
         }

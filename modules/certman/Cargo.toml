@@ -8,3 +8,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 libmilkyway = {path = "../../libmilkyway"}
+# External dependencies
+colored = "2.1.0"

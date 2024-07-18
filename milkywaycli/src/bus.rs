@@ -1,9 +1,11 @@
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use libmilkyway::actor::binder::coroutine::BinderAsyncService;
 use libmilkyway::module::ModuleDataBus;
 use libmilkyway::services::certificate::{CertificateAsyncService, CertificateServiceBinder};
 use libmilkyway::services::name::NameService;
 use libmilkyway::transport::TransportService;
+use crate::services::certificate::CertificateServiceImpl;
 
 ///
 /// A DataBus for CLI program
@@ -15,7 +17,13 @@ pub struct CLIDataBus{
 
 impl CLIDataBus{
     pub fn new(certificate_storage: &str) -> CLIDataBus{
-        let service = Box::new(crate::services::certificate::CertificateServiceImpl::new(certificate_storage));
+        let fpath = Path::new(certificate_storage);
+        let service_impl = if fpath.exists(){
+            CertificateServiceImpl::load_from_file(certificate_storage)
+        } else {
+            CertificateServiceImpl::new(certificate_storage)
+        };
+        let service = Box::new(service_impl);
         let service = BinderAsyncService::run(service);
         CLIDataBus{
             certificate_service: Arc::new(Mutex::new(service)),
