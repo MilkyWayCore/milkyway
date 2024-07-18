@@ -1,4 +1,5 @@
 mod namespaces;
+mod utils;
 
 use std::sync::{Arc, Mutex};
 use colored::Colorize;

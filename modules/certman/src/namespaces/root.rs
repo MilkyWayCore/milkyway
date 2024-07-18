@@ -12,6 +12,7 @@ use libmilkyway::cli::table::Table;
 use libmilkyway::pki::certificate::Certificate;
 use libmilkyway::pki::impls::certificates::falcon1024::{Falcon1024RootCertificate, generate_falcon1024_root_certificate};
 use libmilkyway::services::certificate::{CertificateService, CertificateServiceBinder};
+use crate::utils::certificates_flags_to_string;
 
 pub struct RootNamespace{
     cert_binder: Arc<Mutex<Box<CertificateServiceBinder>>>,
@@ -30,9 +31,10 @@ impl RootNamespace {
             println!("No root certificate found");
         } else {
             let certificate = result.unwrap();
+            let flags = certificate.get_flags();
             let mut table = Table::new(vec!["SERIAL", "NAME", "FLAGS"]);
             table.add_row(vec![&certificate.get_serial().to_string(),
-                               &certificate.get_name(), ""]);
+                               &certificate.get_name(), &certificates_flags_to_string(flags)]);
             table.display();
         }
     }
