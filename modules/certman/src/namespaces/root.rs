@@ -6,10 +6,11 @@ use colored::Colorize;
 use libmilkyway::cli::arguments::parse_arguments;
 use libmilkyway::cli::io::confirm;
 use libmilkyway::serialization::serializable::Serializable;
+use libmilkyway::serialization::deserializable::Deserializable;
 use libmilkyway::cli::router::CommandNamespace;
 use libmilkyway::cli::table::Table;
 use libmilkyway::pki::certificate::Certificate;
-use libmilkyway::pki::impls::certificates::falcon1024::generate_falcon1024_root_certificate;
+use libmilkyway::pki::impls::certificates::falcon1024::{Falcon1024RootCertificate, generate_falcon1024_root_certificate};
 use libmilkyway::services::certificate::{CertificateService, CertificateServiceBinder};
 
 pub struct RootNamespace{
@@ -88,6 +89,37 @@ impl RootNamespace {
         certificate.dump(&file.clone().unwrap());
         println!("Export successful");
     }
+    
+    pub fn import(&mut self, arguments: Vec<String>){
+        let argmap = parse_arguments(arguments);
+        if !argmap.contains_key("file"){
+            println!("{} {}", "error:".red().bold().underline(), "Argument 'file' is required");
+            return;
+        }
+        let file = argmap.get("file").unwrap();
+        if file.is_none(){
+            println!("{} {}", "error:".red().bold().underline(), "Argument 'file' requires a value");
+            return;
+        }
+        let file = file.clone().unwrap();
+        let certificate_result = Falcon1024RootCertificate::from_file(Path::new(&file));
+        if certificate_result.is_err(){
+            println!("{} {}", "error:".red().bold().underline(), "Can not read file. Does format is correct?");
+            return;
+        }
+        println!("Loaded certificate successfully");
+        let certificate = certificate_result.unwrap();
+        let mut binder = self.cert_binder.lock().unwrap();
+        let old_certificate = binder.get_root_certificate();
+        if old_certificate.is_some(){
+            if !confirm("Root certificate is already generated"){
+                return;
+            }
+        }
+        binder.set_root_certificate(certificate);
+        binder.commit();
+        println!("Registered certificate in service");
+    }
 }
 
 impl CommandNamespace for RootNamespace{
@@ -101,6 +133,9 @@ impl CommandNamespace for RootNamespace{
             }
             "export" => {
                 self.export(args);
+            }
+            "import" => {
+                self.import(args)
             }
             &_ => {
                 println!("{} {}", "error:".red().bold().underline(), "No such command");

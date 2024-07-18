@@ -31,6 +31,8 @@ Certificate generation successful
 #### `export`
 Full command: `certman/root/export`
 
+Exports root certificate to a given file.
+
 Arguments:
 * `file` file name to save root certificate to
 
@@ -39,4 +41,22 @@ Arguments:
 ```
 mway> certman/root/export file=root.pqcert
 Export successful
+```
+
+
+#### `import`
+Full command: `certman/root/import`
+
+Imports root certificate from a given file.
+
+Arguments:
+* `file` file to load certificate from
+
+
+**Example**
+
+```
+mway> certman/root/import file=root.pqcert
+Loaded certificate successfully
+Registere certificate in service
 ```
