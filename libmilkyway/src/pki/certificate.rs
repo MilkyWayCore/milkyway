@@ -163,4 +163,97 @@ pub trait Certificate<PK: CryptoKey, SK: CryptoKey>: Serializable + Deserializab
     /// returns: String: name of certificate
     ///
     fn get_name(&self) -> String;
+    
+    
+    ///
+    /// Gets flags of certificate
+    /// 
+    /// returns: u128: certificate flags
+    ///
+    fn get_flags(&self) -> u128;
+    
+    ///
+    /// Sets flags to certificate
+    /// 
+    /// # Arguments
+    /// * flags: u128: flags to set
+    /// 
+    fn set_flags(&mut self, flags: u128);
+    
+    ///
+    /// Checks that certificate has certain flag
+    /// 
+    /// # Arguments
+    /// * mask: u128: flag mask to check
+    /// 
+    /// returns: bool: if flags from mask are set
+    /// 
+    #[inline]
+    fn check_flag(&self, mask: u128) -> bool{
+        self.get_flags() & mask != 0
+    }
+    
+    
+    ///
+    /// Sets certain flags mask
+    /// 
+    /// # Arguments
+    /// * mask: u128: flag mask to set
+    /// 
+    fn set_flag(&mut self, mask: u128){
+        let current_flags = self.get_flags();
+        self.set_flags(current_flags | mask);
+    }
+    
+    ///
+    /// Unset certain flags mask
+    /// 
+    /// # Arguments
+    /// * mask: u128: flag mask to unset
+    /// 
+    fn unset_flag(&mut self, mask: u128){
+        let current_flags = self.get_flags();
+        self.set_flags(current_flags & (!mask));
+    }
 }
+
+///
+/// Flag that certificate is root
+/// 
+pub const FLAG_ROOT_CERT: u128 = 1;
+
+///
+/// Flag that certificate is used by user
+/// 
+pub const FLAG_USER_CERT: u128 = 1<<1;
+
+///
+/// Flag that certificate is used by server/broker
+/// 
+pub const FLAG_SERVER_CERT: u128 = 1<<2;
+
+///
+/// Flag that certificate is used by client machine
+/// 
+pub const FLAG_CLIENT_CERT: u128 = 1<<3;
+
+///
+/// Flag that certificate can sign other certificates
+/// 
+pub const FLAG_SIGN_CERTS: u128 = 1<<4;
+
+///
+/// Flag that certificate can sign data, messages
+/// 
+pub const FLAG_SIGN_MESSAGES: u128 = 1<<5;
+
+///
+/// Flag that the commands signed by this certificate can not write anything
+/// 
+pub const FLAG_NO_WRITE: u128 = 1<<6;
+
+///
+/// Flag that the command signed by this certificate can not read state
+/// 
+pub const FLAG_NO_READ: u128 = 1<<7;
+

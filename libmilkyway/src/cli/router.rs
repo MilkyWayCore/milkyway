@@ -100,29 +100,28 @@ impl CommandRouter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cell::RefCell;
-    use std::rc::Rc;
+    use std::sync::{Arc, Mutex};
 
     // Mock CommandNamespace implementation for testing
     struct MockNamespace {
-        received_commands: Rc<RefCell<Vec<(String, Vec<String>)>>>,
+        received_commands: Arc<Mutex<Vec<(String, Vec<String>)>>>,
     }
 
     impl MockNamespace {
         fn new() -> Self {
             Self {
-                received_commands: Rc::new(RefCell::new(Vec::new())),
+                received_commands: Arc::new(Mutex::new(Vec::new())),
             }
         }
 
-        fn get_received_commands(&self) -> Rc<RefCell<Vec<(String, Vec<String>)>>> {
+        fn get_received_commands(&self) -> Arc<Mutex<Vec<(String, Vec<String>)>>> {
             self.received_commands.clone()
         }
     }
 
     impl CommandNamespace for MockNamespace {
         fn on_command(&mut self, command: String, args: Vec<String>) {
-            self.received_commands.borrow_mut().push((command, args));
+            self.received_commands.lock().unwrap().push((command, args));
         }
     }
 
@@ -162,7 +161,7 @@ mod tests {
         let result = router.on_command(command_path.clone(), arguments.clone());
 
         assert!(result);
-        let received_commands = received_commands.borrow();
+        let received_commands = received_commands.lock().unwrap();
         assert_eq!(received_commands.len(), 1);
         assert_eq!(received_commands[0], ("add".to_string(), arguments));
     }

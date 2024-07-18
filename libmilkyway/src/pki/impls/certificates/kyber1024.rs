@@ -5,7 +5,7 @@ use crate::serialization::serializable::Serialized;
 use crate::serialization::serializable::Serializable;
 use crate::serialization::deserializable::Deserializable;
 use libmilkyway_derive::{Deserializable, Serializable};
-use crate::pki::certificate::{Certificate, CertificateType};
+use crate::pki::certificate::{Certificate, CertificateType, FLAG_SIGN_CERTS, FLAG_SIGN_MESSAGES};
 use crate::pki::signature::Signature;
 
 
@@ -17,6 +17,7 @@ pub struct Kyber1024Certificate{
     pub public_key: kyber1024::PublicKey,
     pub signature: Option<Signature>,
     pub name: String,
+    pub flags: u128,
 }
 
 impl Certificate<kyber1024::PublicKey, kyber1024::SecretKey> for Kyber1024Certificate{
@@ -67,6 +68,18 @@ impl Certificate<kyber1024::PublicKey, kyber1024::SecretKey> for Kyber1024Certif
     fn get_name(&self) -> String {
         self.name.clone()
     }
+
+    #[inline]
+    fn get_flags(&self) -> u128 {
+        self.flags
+    }
+
+    fn set_flags(&mut self, flags: u128) {
+        if flags & FLAG_SIGN_CERTS != 0 || flags & FLAG_SIGN_MESSAGES != 0{
+            panic!("Kyber1024 can not sign anything");
+        }
+        self.flags = flags;
+    }
 }
 
 /* Tests begin here */
@@ -108,6 +121,7 @@ mod tests {
             public_key: encipherment_public_key.clone(),
             signature: None,
             name: "test".to_string(),
+            flags: 0,
         };
 
         // Sign the encipherment certificate with the root certificate
@@ -152,6 +166,7 @@ mod tests {
             public_key,
             signature: None,
             name: "test".to_string(),
+            flags: 0,
         };
 
         let serialized = certificate.serialize();
@@ -169,6 +184,7 @@ mod tests {
             public_key: public_key.clone(),
             signature: None,
             name: "test".to_string(),
+            flags: 0,
         };
 
         let cloned_certificate = certificate.clone_without_signature_and_sk();
@@ -186,6 +202,7 @@ mod tests {
             public_key: public_key.clone(),
             signature: None,
             name: "test".to_string(),
+            flags: 0,
         };
 
         let test_data = TestData {

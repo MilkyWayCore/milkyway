@@ -102,6 +102,7 @@ mod tests {
             public_key,
             signature: None,
             name: "test".to_string(),
+            flags: 0,
         }
     }
 
@@ -114,6 +115,7 @@ mod tests {
             public_key,
             signature: None,
             name: "test".to_string(),
+            flags: 0,
         }
     }
 

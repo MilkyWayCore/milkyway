@@ -1,5 +1,5 @@
 use libmilkyway_derive::{Deserializable, Serializable};
-use crate::pki::certificate::{Certificate, CertificateType};
+use crate::pki::certificate::{Certificate, CertificateType, FLAG_NO_READ, FLAG_NO_WRITE, FLAG_ROOT_CERT, FLAG_SIGN_CERTS};
 use crate::pki::certificate::CertificateType::{RootCertificate,
                                                SigningCertificate};
 use crate::pki::impls::keys::falcon1024::{Falcon1024PublicKey, Falcon1024SecretKey, generate_falcon1024_keypair};
@@ -19,6 +19,7 @@ pub struct Falcon1024Certificate {
     pub public_key: Falcon1024PublicKey,
     pub signature: Option<Signature>,
     pub name: String,
+    pub flags: u128,
 }
 
 impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024Certificate {
@@ -71,6 +72,16 @@ impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024Certifi
     #[inline]
     fn get_name(&self) -> String {
         self.name.clone()
+    }
+
+    #[inline]
+    fn get_flags(&self) -> u128 {
+        self.flags
+    }
+
+    #[inline]
+    fn set_flags(&mut self, flags: u128) {
+        self.flags = flags;
     }
 }
 
@@ -130,6 +141,14 @@ impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024RootCer
     fn get_name(&self) -> String {
         self.name.clone()
     }
+
+    fn get_flags(&self) -> u128 {
+        FLAG_ROOT_CERT | FLAG_NO_READ | FLAG_NO_WRITE | FLAG_SIGN_CERTS
+    }
+
+    fn set_flags(&mut self, _flags: u128) {
+        panic!("Can not set flags for root certificate");
+    }
 }
 
 pub fn generate_falcon1024_root_certificate(name: String) -> Falcon1024RootCertificate{
@@ -175,6 +194,7 @@ mod tests {
             public_key: signing_public_key.clone(),
             signature: None,
             name: "test".to_string(),
+            flags: 0,
         };
 
         let signature = root_certificate.sign_data(&signing_certificate.clone_without_signature_and_sk(),
@@ -215,6 +235,7 @@ mod tests {
             public_key,
             signature: None,
             name: "test".to_string(),
+            flags: 0,
         };
 
         let serialized = certificate.serialize();
@@ -232,6 +253,7 @@ mod tests {
             public_key: public_key.clone(),
             signature: None,
             name: "test".to_string(),
+            flags: 0,
         };
 
         let cloned_certificate = certificate.clone_without_signature_and_sk();
@@ -249,6 +271,7 @@ mod tests {
             public_key: public_key.clone(),
             signature: None,
             name: "test".to_string(),
+            flags: 0,
         };
 
         let test_data = TestData {
