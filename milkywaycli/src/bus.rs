@@ -5,13 +5,17 @@ use libmilkyway::services::certificate::{CertificateAsyncService, CertificateSer
 use libmilkyway::services::name::NameService;
 use libmilkyway::transport::TransportService;
 
+///
+/// A DataBus for CLI program
+/// 
+#[derive(Clone)]
 pub struct CLIDataBus{
     certificate_service: Arc<Mutex<CertificateAsyncService>>,
 }
 
 impl CLIDataBus{
-    pub fn new() -> CLIDataBus{
-        let service = Box::new(crate::services::certificate::CertificateServiceImpl::new("/tmp/store.dat"));
+    pub fn new(certificate_storage: &str) -> CLIDataBus{
+        let service = Box::new(crate::services::certificate::CertificateServiceImpl::new(certificate_storage));
         let service = BinderAsyncService::run(service);
         CLIDataBus{
             certificate_service: Arc::new(Mutex::new(service)),

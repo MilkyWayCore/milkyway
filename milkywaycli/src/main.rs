@@ -1,23 +1,50 @@
 pub mod services;
 mod bus;
+mod configuration;
+mod cli;
 
+use std::fs;
 use std::path::Path;
+use std::process::exit;
 use colored::Colorize;
-use libmilkyway::actor::binder::coroutine::BinderAsyncService;
 use libmilkyway::module::loader::DynamicModule;
+use libmilkyway::module::MilkywayModule;
 use libmilkyway::services::certificate::CertificateService;
 use libmilkyway::tokio::init_tokio;
 use crate::bus::CLIDataBus;
+use crate::cli::CLIController;
+use crate::configuration::CLIConfiguration;
 
 
 #[allow(unsafe_code)]
 unsafe fn load_modules_from(dir_path: &Path) -> Vec<DynamicModule> {
     let mut result = Vec::<DynamicModule>::new();
-    for file_name in dir_path.iter() {
-        let module = DynamicModule::load(file_name.to_str().unwrap());
+    let paths = fs::read_dir(dir_path.iter());
+    if paths.is_err(){
+        println!("{}{}{}", "warning:".yellow().bold().underline(), " ".clear(),
+                 "No modules directory found");
+        return vec![];
+    }
+    for entry in paths.unwrap() {
+        if entry.is_err(){
+            continue;
+        }
+        let entry = entry.unwrap();
+        let metadata = entry.metadata();
+        if metadata.is_err(){
+            continue;
+        }
+        let metadata = metadata.unwrap();
+        if metadata.is_dir(){
+            continue;
+        }
+        let fname = entry.file_name();
+        let fname = fname.to_str().unwrap();
+        let module = DynamicModule::load(fname);
         if module.is_err() {
-            println!("{} {}{}", "Failed to load module:".bold(), "".clear(),
-                     file_name.to_str().unwrap());
+            println!("{}{}{} {}{}", "warning:".yellow().bold().underline(), " ".clear(),
+                     "Failed to load module:".bold(), "".clear(),
+                     fname);
             continue;
         }
         result.push(module.unwrap());
@@ -25,15 +52,61 @@ unsafe fn load_modules_from(dir_path: &Path) -> Vec<DynamicModule> {
     result
 }
 
+
 fn main() {
+    // Initialize tokio
     init_tokio();
-    let mut known_commands = Vec::<String>::new();
-    let modules_path = Path::new(".");
-    unsafe {
-        let mut modules = load_modules_from(modules_path);
+
+    // Read configuration
+    let configuration = CLIConfiguration::load(Path::new("/tmp/mwayrc.yml"));
+    if configuration.is_none(){
+        println!("{}:{}", "error".red().bold().underline(), " can not read configuration".clear());
+        exit(-1);
     }
-    let certificate_service = Box::new(crate::services::certificate::CertificateServiceImpl::new("/tmp/store.dat"));
-    let mut service = BinderAsyncService::run(certificate_service);
-    let mut binder = service.bind();
-    binder.commit();
+    let configuration = configuration.unwrap();
+    let storage_path_option = configuration.get_storage_path();
+    if storage_path_option.is_none(){
+        println!("{}:{}", "error".red().bold().underline(), " no storage_path in configuration".clear());
+    }
+    let storage_path = storage_path_option.unwrap();
+    let certificate_store_path = storage_path.join(Path::new("certs.dat")).as_path();
+    let modules_path_option = configuration.get_modules_path();
+    let modules_path = if modules_path_option.is_none(){
+        Path::new("/opt/mway/lib/modules")
+    } else {
+        modules_path_option.unwrap()
+    };
+
+    // Load modules
+    let mut modules: Vec<DynamicModule>;
+    unsafe {
+        modules = load_modules_from(modules_path);
+    }
+
+    // Create data bus
+    // It will also start services
+    let mut data_bus = CLIDataBus::new(modules_path.to_str().unwrap());
+
+    //Now tell all modules they are loaded
+    for module in &modules{
+        module.get_instance().on_load(Box::new(data_bus.clone()));
+    }
+
+    // Create a CLI controller
+    let mut controller = CLIController::new(modules);
+
+    // Check arguments
+    let arguments: Vec<String> = std::env::args().collect();
+    let arguments = arguments[1..].to_vec();
+    if arguments.len() > 0{
+        // Execute command provided
+        let result = controller.handle_command(arguments[0].clone(), arguments[1..].to_vec().clone());
+        if !result{
+            exit(-1);
+        }
+        exit(0);
+    }
+
+    // No arguments were provided => start interactive shell
+    controller.run();
 }

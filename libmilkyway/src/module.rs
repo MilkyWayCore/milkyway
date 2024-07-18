@@ -1,7 +1,7 @@
 pub mod loader;
 
 use crate::message::common::Message;
-use crate::services::certificate::{CertificateService, CertificateServiceBinder};
+use crate::services::certificate::CertificateServiceBinder;
 use crate::services::name::NameService;
 use crate::transport::TransportService;
 
