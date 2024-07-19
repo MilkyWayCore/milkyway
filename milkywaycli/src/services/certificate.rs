@@ -263,6 +263,7 @@ mod tests {
             public_key,
             signature: None,
             name: "".to_string(),
+            flags: 0,
         };
         let signature = root_cert.sign_data(&cert.clone_without_signature_and_sk(), HashType::None).unwrap();
         cert.signature = Some(signature);
@@ -278,6 +279,7 @@ mod tests {
             public_key,
             signature: None,
             name: "Test".to_string(),
+            flags: 0,
         };
         let signature = signing_cert.sign_data(&cert.clone_without_signature_and_sk(), HashType::None).unwrap();
         cert.signature = Some(signature);
@@ -334,7 +336,7 @@ mod tests {
             signing_certificates: HashMap::new(),
             encryption_certificates: HashMap::new(),
         };
-        let mut signing_cert = create_test_signing_certificate(0, &root_cert);
+        let signing_cert = create_test_signing_certificate(0, &root_cert);
         assert!(service.verify_signing_certificate(&signing_cert));
         assert!(service.add_signing_certificate(signing_cert.clone()));
 

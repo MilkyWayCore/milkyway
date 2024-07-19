@@ -20,15 +20,54 @@ It is intended that only CLI would be able to sign commands with proper certific
 ## Example
 ### VPN setup
 In perfect future we would be able to do something like this:
-```bash
-mway group --make-peer-group --all-unassigned --name my_network # Add all new peers to new group
-mway update --group my_network --no-reboot # Install system updates on all peers in network, but do not reboot them
-mway vpn --initialize-wireguard-on 10.10.0.1 --new-peer-group --peer-group-name virt_net # Install and set-up wireguard on peer with IP 10.10.0.1 and create peer group for its client
-mway vpn --add-peers 172.16.42.0/24 --all --peer-group virt_net # Add local peers to unite them in one virtual network
-mway reboot --peer-group virt_net # Reboot all peers in virt_net group
+
+```
+mway> group/create peers=* name=my-net
+Group created successfully
+mway> system/packages/install pkgs=wireguard group=my-net no-reboot
+Installing packages
+wireguard:
+  - peer1...OK
+  - peer2...OK
+  - peer3...OK
+mway> system/packages/update group=my-net no-reboot
+Updating packages on:
+peer1...OK
+peer2...OK
+peer3...OK
+mway> wireguard init host=peer1
+Started up WireGuard server on peer1
+mway> wireguard add-peers host=peer1 peers=peer1,peer2
+Added peers successfully
+mway> system/reboot group=my-net
+peer1 is down
+peer2 is down
+peer3 is down
+peer1 is up
+peer2 is up
+peer3 is up
+mway>
 ```
 
-(Or maybe even somehow better)
+Or just write state in YAML:
+
+```yaml
+system:
+  packages:
+    - update
+    - install:
+        - wireguard
+  reboot:
+    - on-state-apply
+wireguard:
+  - init:
+      host: peer1
+  - add_peers:
+      host: peer1
+      peers:
+        - peer2
+        - peer3 
+```
 
 ### New virtual machine
 ```bash
