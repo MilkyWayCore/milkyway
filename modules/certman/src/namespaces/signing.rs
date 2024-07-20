@@ -1,8 +1,13 @@
 use std::sync::{Arc, Mutex};
 use colored::Colorize;
+use libmilkyway::cli::arguments::parse_arguments;
 use libmilkyway::cli::router::CommandNamespace;
-use libmilkyway::services::certificate::CertificateServiceBinder;
+use libmilkyway::cli::table::Table;
+use libmilkyway::pki::certificate::Certificate;
+use libmilkyway::serialization::serializable::Serializable;
+use libmilkyway::services::certificate::{CertificateService, CertificateServiceBinder};
 use crate::namespaces::root::RootNamespace;
+use crate::utils::certificates_flags_to_string;
 
 pub struct SigningNamespace{
     cert_binder: Arc<Mutex<Box<CertificateServiceBinder>>>,
@@ -24,7 +29,48 @@ impl SigningNamespace {
     }
 
     pub fn export(&mut self, arguments: Vec<String>){
-
+        println!("{:?}", arguments);
+        println!("{:?}", parse_arguments(arguments.clone()));
+        let argmap = parse_arguments(arguments);
+        if !argmap.contains_key("file"){
+            println!("{} {}", "error:".red().bold().underline(), "Argument 'file' is required");
+            return;
+        }
+        let file = argmap.get("file").unwrap();
+        if file.is_none(){
+            println!("{} {}", "error:".red().bold().underline(), "Argument 'file' requires a value");
+            return;
+        }
+        if !argmap.contains_key("serial") {
+            println!("{} {}", "error:".red().bold().underline(), "Argument 'serial' is required");
+            return;
+        }
+        let serial = argmap.get("serial").unwrap();
+        if serial.is_none(){
+            println!("{} {}", "error:".red().bold().underline(), "Argument 'serial' requires a value");
+            return;
+        }
+        let mut binder = self.cert_binder.lock().unwrap();
+        let serial = serial.clone().unwrap().parse::<u128>();
+        if serial.is_err(){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Argument 'serial' must be a positive integer");
+            return;
+        }
+        let serial = serial.unwrap();
+        if serial==0{
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Can not export root certificate");
+            return;
+        }
+        let certificate = binder.get_signing_certificate(serial);
+        if certificate.is_none(){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "No certificate with such serial number");
+            return;
+        }
+        let certificate = certificate.unwrap();
+        certificate.dump(&file.clone().unwrap());
     }
 
     pub fn import(&mut self, arguments: Vec<String>){
@@ -40,7 +86,13 @@ impl SigningNamespace {
     }
 
     pub fn show(&mut self){
-
+        let result =self.cert_binder.lock().unwrap().get_signing_certificates();
+        let mut table = Table::new(vec!["SERIAL", "NAME", "FLAGS"]);
+        for certificate in result{
+            table.add_row(vec![&certificate.get_serial().to_string(),
+            &certificate.get_name(), &certificates_flags_to_string(certificate.get_flags())]);
+        }
+        table.display();
     }
 }
 

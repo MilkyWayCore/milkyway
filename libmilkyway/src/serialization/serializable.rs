@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::io::{Error, Write};
 ///
 /// Array of bytes. Allows to store any serialized structure.
 ///
@@ -19,8 +19,17 @@ pub trait Serializable {
     /// # Arguments
     /// * file_name: String: a filename to save serializable to
     ///
-    fn dump(&self, file_name: &str){
-        let mut file = std::fs::File::create(file_name).unwrap();
-        file.write_all(&self.serialize()).unwrap();
+    fn dump(&self, file_name: &str) -> Result<usize, Error>{
+        let mut file = std::fs::File::create(file_name);
+        if file.is_err(){
+            return Err(file.err().unwrap());
+        }
+        let mut file = file.unwrap();
+        let serialized = self.serialize();
+        let write_result = file.write_all(&serialized);
+        if write_result.is_err(){
+            return Err(write_result.err().unwrap());
+        }
+        Ok(serialized.len())
     }
 }
