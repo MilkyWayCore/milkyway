@@ -133,6 +133,7 @@ pub enum CertificateServiceBinderRequest{
     Commit,
 }
 
+
 pub enum CertificateServiceBinderResponse{
     Falcon1024Cert(Option<Falcon1024Certificate>),
     Kyber1024Cert(Option<Kyber1024Certificate>),
@@ -241,6 +242,7 @@ impl BinderServiceHandler<CertificateServiceBinderRequest,
                 Status(self.add_signing_certificate(certificate))
             }
             CertificateServiceBinderRequest::SetSigningCertificate(root_certificate) => {
+                println!("Set root cert");
                 self.set_root_certificate(root_certificate);
                 Status(true)
             }

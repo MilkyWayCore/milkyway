@@ -22,7 +22,7 @@ macro_rules! unwrap_variant {
     ($enum_value:expr, $variant:path) => {
         match $enum_value {
             $variant(value) => value,
-            _ => panic!("Expected {}, found {}", stringify!($variant), stringify!($enum_value)),
+            _ => panic!("Expected variant {}", stringify!($variant)),
         }
     };
 }

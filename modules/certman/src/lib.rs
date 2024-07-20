@@ -9,6 +9,7 @@ use libmilkyway::module::{CLIStatus, MilkywayModule, ModuleDataBus};
 use libmilkyway::module::CLIStatus::{Done, NamespaceChange};
 use libmilkyway::services::certificate::CertificateServiceBinder;
 use crate::namespaces::root::RootNamespace;
+use crate::namespaces::signing::SigningNamespace;
 
 ///
 /// The module for managing certificates
@@ -40,7 +41,9 @@ impl MilkywayModule for CertmanModule {
         let binder = Arc::new(Mutex::new(data_bus.get_certificate_service()));
         self.certificate_service = Some(binder.clone());
         self.router.register_namespace(vec!["certman".to_string(), "root".to_string()], 
-                                       Box::new(RootNamespace::new(binder.clone())))
+                                       Box::new(RootNamespace::new(binder.clone())));
+        self.router.register_namespace(vec!["certman".to_string(), "signing".to_string()], 
+                                       Box::new(SigningNamespace::new(binder.clone())));
     }
 
     fn on_cli_command(&mut self, command: Vec<String>, arguments: Vec<String>) -> CLIStatus {
