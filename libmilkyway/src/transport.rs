@@ -1,4 +1,4 @@
-pub mod stream;
+pub mod async_stream;
 pub mod crypto;
 
 use async_trait::async_trait;
@@ -42,7 +42,7 @@ pub trait TransportTransformer: Send{
 /// Implements a communication with pieces of serialized data between to parties.
 ///
 #[async_trait]
-pub trait Transport{
+pub trait AsyncTransport: Send{
     ///
     /// Sends a data to transport destination
     ///
@@ -112,17 +112,19 @@ pub trait Transport{
     fn add_transformer<'a>(&'a mut self, transformer: Box<dyn TransportTransformer>) -> &'a Self;
 }
 
+
 ///
-/// A generic trait for communicating from modules themselves
-///
-#[async_trait]
-pub trait TransportService{
-    ///
-    /// Sends message to a given client
-    ///
-    /// # Arguments
-    /// * msg: &Message: reference to message which should be sent
-    /// * target: u128: an ID of client to send it to
-    ///
-    async fn send_message(&self, target: u128, msg: &Message);
+/// Transport controller allows to quickly send/receive messages
+/// 
+pub trait Transport: Send + Sync {
+    fn recv_from(&mut self, id: u128, timeout: u64) -> Option<Message>;
+    fn recv_any(&mut self) -> Option<Message>;
+    fn send(&mut self, dest: u128, message: Message);
+    fn send_non_blocking(&mut self, dest: u128, message: Message);
+}
+
+
+pub trait TransportChannel: Send + Sync {
+    fn recv(&mut self, timeout: u64) -> Option<Message>;
+    fn send(&mut self, message: Message);
 }

@@ -21,6 +21,7 @@ pub struct Message{
     pub signature: Option<Signature>,
     pub source: u128,
     pub destination: u128,
+    pub module_id: u64,
 }
 
 impl<'a> Message {
@@ -108,6 +109,18 @@ impl<'a> Message {
         self.destination = destination;
         self
     }
+
+    ///
+    /// Clones message without signature, which allows to verify whole-message signature
+    ///
+    /// returns: cloned Message with signature equal to None
+    ///
+    #[inline]
+    pub fn clone_without_signature(&self) -> Message{
+        let mut cloned = self.clone();
+        cloned.signature = None;
+        cloned
+    }
 }
 
 pub trait AsMessage{
@@ -178,6 +191,7 @@ mod tests {
             signature: None,
             source: 0,
             destination: 0,
+            module_id: 0,
         };
         message.set_id(12345);
         assert_eq!(message.id, 12345);
@@ -193,6 +207,7 @@ mod tests {
             signature: None,
             source: 0,
             destination: 0,
+            module_id: 0,
         };
         message.set_timestamp(1234567890);
         assert_eq!(message.timestamp, 1234567890);
@@ -208,6 +223,7 @@ mod tests {
             signature: None,
             source: 0,
             destination: 0,
+            module_id: 0,
         };
         message.set_current_timestamp();
         assert!(message.timestamp > 0);
@@ -223,6 +239,7 @@ mod tests {
             signature: None,
             source: 0,
             destination: 0,
+            module_id: 0,
         };
         message.set_source(42);
         assert_eq!(message.source, 42);
@@ -238,6 +255,7 @@ mod tests {
             signature: None,
             source: 0,
             destination: 0,
+            module_id: 0,
         };
         message.set_destination(84);
         assert_eq!(message.destination, 84);
@@ -253,6 +271,7 @@ mod tests {
             signature: None,
             source: 0,
             destination: 0,
+            module_id: 0,
         };
         let key = TestKey;
 
@@ -273,6 +292,7 @@ mod tests {
             signature: None,
             source: 0,
             destination: 0,
+            module_id: 0,
         };
         let key = TestKey;
 
@@ -296,6 +316,7 @@ mod tests {
             signature: None,
             source: 42,
             destination: 84,
+            module_id: 0,
         };
 
         let serialized = message.serialize();

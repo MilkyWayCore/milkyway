@@ -4,7 +4,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::serialization::deserializable::Deserializable;
 use crate::serialization::serializable::{Serializable, Serialized};
 use crate::tokio::tokio_timeout;
-use crate::transport::{Transport, TransportTransformer};
+use crate::transport::{AsyncTransport, TransportTransformer};
 
 ///
 /// A transport over a tokio stream.
@@ -38,7 +38,7 @@ impl<T: AsyncReadExt + AsyncWriteExt + Send + Unpin> StreamTransport<T> {
 }
 
 #[async_trait]
-impl<T: AsyncReadExt + AsyncWriteExt + Send + Unpin> Transport for StreamTransport<T> {
+impl<T: AsyncReadExt + AsyncWriteExt + Send + Unpin> AsyncTransport for StreamTransport<T> {
     #[inline]
     async fn send_raw(&mut self, data: Serialized) -> Result<usize, tokio::io::Error> {
         let data = self.apply_transform(data);
@@ -104,7 +104,7 @@ mod tests {
     use tokio::time::{timeout, Duration};
     use crate::serialization::serializable::{Serializable, Serialized};
     use crate::serialization::deserializable::Deserializable;
-    use crate::transport::Transport;
+    use crate::transport::AsyncTransport;
     
 
     #[tokio::test]
