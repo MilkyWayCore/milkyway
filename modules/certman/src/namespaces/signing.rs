@@ -25,6 +25,25 @@ impl SigningNamespace {
     }
 
     pub fn remove(&mut self, arguments: Vec<String>){
+        let argmap = parse_arguments(arguments);
+        if !argmap.contains_key("serial"){
+            println!("{} {}", "error:".red().bold().underline(), "Argument 'serial' is required");
+            return;
+        }
+        let serial = argmap.get("serial").unwrap();
+        if serial.is_none(){
+            println!("{} {}", "error:".red().bold().underline(), "Argument 'serial' must have a value");
+            return;
+        }
+        let serial = serial.clone().unwrap();
+        let serial = serial.parse::<u128>();
+        if serial.is_err(){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Argument serial must be a positive number");
+            return;
+        }
+        let serial = serial.unwrap();
+        let mut binder = self.cert_binder.lock().unwrap();
 
     }
 
