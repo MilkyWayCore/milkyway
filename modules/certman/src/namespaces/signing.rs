@@ -3,9 +3,12 @@ use colored::Colorize;
 use libmilkyway::cli::arguments::parse_arguments;
 use libmilkyway::cli::router::CommandNamespace;
 use libmilkyway::cli::table::Table;
-use libmilkyway::pki::certificate::Certificate;
+use libmilkyway::pki::certificate::{Certificate, FLAG_CLIENT_CERT, FLAG_SIGN_CERTS};
+use libmilkyway::pki::hash::HashType;
+use libmilkyway::pki::impls::certificates::falcon1024::Falcon1024Certificate;
+use libmilkyway::pki::impls::keys::falcon1024::generate_falcon1024_keypair;
 use libmilkyway::serialization::serializable::Serializable;
-use libmilkyway::services::certificate::{CertificateService, CertificateServiceBinder};
+use libmilkyway::services::certificate::{CertificateService, CertificateServiceBinder, ROOT_CERTIFICATE_SERIAL};
 use crate::namespaces::root::RootNamespace;
 use crate::utils::certificates_flags_to_string;
 
@@ -20,8 +23,64 @@ impl SigningNamespace {
         }
     }
 
-    pub fn generate(&mut self, arguments: Vec<String>){
+    fn generate_signed_certificate(&mut self, binder: &mut Box<CertificateServiceBinder>, serial_number: u128,
+                                   parent_serial_number: u128, /* Serial number of certificate to sign with */
+                                   name: String, flags: u128) -> Result<Falcon1024Certificate, &'static str>{
+        if parent_serial_number==ROOT_CERTIFICATE_SERIAL{
+            let root_certificate = binder.get_root_certificate();
+            if root_certificate.is_none(){
+                return Err("No root certificate");
+            }
+            let root_certificate = root_certificate.unwrap();
+            let (public_key, secret_key) =generate_falcon1024_keypair();
+            let mut certificate = Falcon1024Certificate{
+                serial_number: serial_number,
+                parent_serial_number: parent_serial_number,
+                secret_key: Some(secret_key),
+                public_key: public_key,
+                signature: None,
+                name: name,
+                flags: flags,
+            };
+            let result = root_certificate.sign_data(&certificate.clone_without_signature_and_sk(),
+                                                    HashType::None);
+            if result.is_err(){
+                return Err("Can not sign certificate");
+            }
+            certificate.signature = Some(result.unwrap());
+            return Ok(certificate);
+        } else {
+            let parent_certificate = binder.get_signing_certificate(parent_serial_number);
+            if parent_certificate.is_none(){
+                return Err("Can not find parent certificate");
+            }
+            let parent_certificate = parent_certificate.unwrap();
+            let can_sign = parent_certificate.check_flag(FLAG_SIGN_CERTS);
+            if !can_sign{
+                return Err("This certificate can not sign");
+            }
+            let (public_key, secret_key) =generate_falcon1024_keypair();
+            let mut certificate = Falcon1024Certificate{
+                serial_number: serial_number,
+                parent_serial_number: parent_serial_number,
+                secret_key: Some(secret_key),
+                public_key: public_key,
+                signature: None,
+                name: name,
+                flags: flags,
+            };
+            let result = parent_certificate.sign_data(&certificate.clone_without_signature_and_sk(), HashType::None);
+            if result.is_err(){
+                return Err("Can not sign a new certificate");
+            }
+            certificate.signature = Some(result.unwrap());
+            return Ok(certificate);
+        }
+    }
 
+
+    pub fn generate(&mut self, arguments: Vec<String>){
+        // 1) Get certificate and sign in separate function
     }
 
     pub fn remove(&mut self, arguments: Vec<String>){
@@ -44,7 +103,11 @@ impl SigningNamespace {
         }
         let serial = serial.unwrap();
         let mut binder = self.cert_binder.lock().unwrap();
-
+        let result = binder.remove_signing_certificate(serial);
+        if !result {
+            println!("{} {}", "error:".red().bold().underline(), "Can not remove certificate");
+            return;
+        }
     }
 
     pub fn export(&mut self, arguments: Vec<String>){
