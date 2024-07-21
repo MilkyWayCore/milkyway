@@ -112,6 +112,22 @@ pub trait CertificateService: Send + Sync{
     /// returns: Vec<Kyber1024Certificate>: a vector of encryption certificates
     ///
     fn get_encryption_certificates(&mut self) -> Vec<Kyber1024Certificate>;
+
+    ///
+    /// Removes signing certificate
+    ///
+    /// returns: bool: whether removing was successful
+    ///
+    fn remove_signing_certificate(&mut self, serial: u128) -> bool;
+
+
+    ///
+    /// Removes encryption certificate
+    ///
+    /// returns: bool: whether removing was successful
+    ///
+    fn remove_encryption_certificate(&mut self, serial: u128) -> bool;
+
     
     ///
     /// Commits changes, i.e. writes new certificates to storage/sends to peers/etc.
@@ -130,6 +146,8 @@ pub enum CertificateServiceBinderRequest{
     GetRootCertificate,
     GetEncryptionCertificates,
     GetSigningCertificates,
+    RemoveSigningCertificate(u128),
+    RemoveEncryptionCertificate(u128),
     Commit,
 }
 
@@ -209,6 +227,14 @@ impl CertificateService for dyn BinderChannel<BinderMessage<CertificateServiceBi
         unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::GetEncryptionCertificates), Kyber1024Certs)
     }
 
+    fn remove_signing_certificate(&mut self, serial: u128) -> bool {
+        unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::RemoveSigningCertificate(serial)), Status)
+    }
+
+    fn remove_encryption_certificate(&mut self, serial: u128) -> bool {
+        unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::RemoveEncryptionCertificate(serial)), Status)
+    }
+
     #[inline]
     fn commit(&mut self) {
         let result = unwrap_variant!(self.handle_request(CertificateServiceBinderRequest::Commit), Status);
@@ -270,6 +296,12 @@ impl BinderServiceHandler<CertificateServiceBinderRequest,
             CertificateServiceBinderRequest::Commit => {
                 self.commit();
                 Status(true)
+            }
+            CertificateServiceBinderRequest::RemoveSigningCertificate(serial) => {
+                Status(self.remove_signing_certificate(serial))
+            }
+            CertificateServiceBinderRequest::RemoveEncryptionCertificate(serial) => {
+                Status(self.remove_encryption_certificate(serial))
             }
         }
     }

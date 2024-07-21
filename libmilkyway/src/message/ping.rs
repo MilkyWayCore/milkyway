@@ -29,6 +29,7 @@ impl AsMessage for PingMessage{
             source: 0,
             destination: 0,
             module_id: 0,
+            certificate_id: 0,
         }
     }
 }
@@ -70,6 +71,7 @@ impl AsMessage for PongMessage{
             source: 0,
             destination: 0,
             module_id: 0,
+            certificate_id: 0,
         }
     }
 }
