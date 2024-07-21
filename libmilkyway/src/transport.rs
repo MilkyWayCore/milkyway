@@ -1,5 +1,4 @@
 pub mod crypto;
-mod async_stream;
 
 use crate::message::common::Message;
 use crate::serialization::deserializable::Deserializable;
@@ -49,11 +48,11 @@ pub trait TransportListener: Send + Sync{
 
 ///
 /// Allows sending messages
-/// 
+///
 pub trait TransportSender: Send + Sync{
     ///
     /// Sends a message. MUST NOT block thread/coroutine
-    /// 
+    ///
     /// # Arguments
     /// * message: a message to send
     ///
