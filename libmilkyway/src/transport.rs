@@ -117,14 +117,79 @@ pub trait AsyncTransport: Send{
 /// Transport controller allows to quickly send/receive messages
 /// 
 pub trait Transport: Send + Sync {
+    ///
+    /// Receives from specific peer a message
+    /// 
+    /// # Implementation notice
+    /// The message MUST NOT be exclusively handled by a waiting receiver, 
+    /// instead it also sent to other modules/receivers
+    /// 
+    /// # Arguments
+    /// * id: u128: ID of peer from which we would wait for message
+    /// * timeout: Tiemout in milliesconds to wait. MUST wait indefinetely if timeout is 0
+    /// 
+    /// # Returns
+    /// Message or None if timed out waiting
+    /// 
     fn recv_from(&mut self, id: u128, timeout: u64) -> Option<Message>;
-    fn recv_any(&mut self) -> Option<Message>;
+    
+    ///
+    /// Receives any message from any peer
+    /// 
+    /// # Implementation notice
+    /// The message MUST NOT be exclusively handled by a waiting receiver,
+    /// instead it also sent to other modules/receivers
+    /// 
+    /// # Arguments
+    /// * id: u128: ID of peer from which we would wait for message
+    /// 
+    /// # Returns
+    /// Message or None if timed out waiting
+    /// 
+    fn recv_any(&mut self, timeout: u64) -> Option<Message>;
+    
+    ///
+    /// Sends message to specified peer.
+    /// 
+    /// # Implementation notice
+    /// MUST block a theread unless message is sent.
+    /// 
+    /// # Arguments
+    /// * dest: ID of peer to which message must be sent
+    /// * message: message to send to peer
     fn send(&mut self, dest: u128, message: Message);
+
+    ///
+    /// Sends message to specified peer without waiting for it being sent
+    ///
+    /// # Implementation notice
+    /// MUST NOT block a theread unless message is sent.
+    ///
+    /// # Arguments
+    /// * dest: ID of peer to which message must be sent
+    /// * message: message to send to peer
     fn send_non_blocking(&mut self, dest: u128, message: Message);
 }
 
-
+///
+/// A channel to communicate with specific peer
+/// 
 pub trait TransportChannel: Send + Sync {
+    ///
+    /// Receives message with timeout.
+    /// 
+    /// # Arguments
+    /// * timeout: A timeout in milliseconds to wait. MUST wait undefinetely if timeout is 0
+    /// 
+    /// returns: Either a message or None if timed-out waiting
+    /// 
     fn recv(&mut self, timeout: u64) -> Option<Message>;
+    
+    ///
+    /// Sends a message
+    /// 
+    /// # Arguments
+    /// * message: message with proper ID of target peer
+    /// 
     fn send(&mut self, message: Message);
 }

@@ -1,5 +1,9 @@
-pub mod db;
+use libmilkyway::tokio::init_tokio;
+
+mod configuration;
+mod services;
 
 fn main() {
-    println!("Hello, world!");
+    init_tokio();
+    env_logger::init();
 }
