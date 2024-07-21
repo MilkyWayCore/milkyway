@@ -7,7 +7,7 @@ use libmilkyway::services::transport::MessageFilter;
 use crate::responder::PingResponder;
 
 ///
-/// The module for managing certificates
+/// The module for pinging peers
 ///
 pub struct PingModule {
     filter_id: Option<u128>,
