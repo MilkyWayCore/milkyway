@@ -3,7 +3,7 @@ pub mod loader;
 use crate::message::common::Message;
 use crate::services::certificate::CertificateServiceBinder;
 use crate::services::name::NameService;
-use crate::transport::TransportService;
+use crate::services::transport::TransportService;
 
 ///
 /// A enum for storing data about CLI commands result
@@ -11,6 +11,27 @@ use crate::transport::TransportService;
 pub enum CLIStatus{
     Done,
     NamespaceChange(Vec<String>),
+}
+
+///
+/// Types of hosts which may load modules
+/// 
+#[derive(PartialEq)]
+pub enum HostType{
+    ///
+    /// A CLI host
+    ///
+    CLI,
+    
+    ///
+    /// A server/broker host
+    /// 
+    Broker,
+    
+    ///
+    /// A peer host
+    /// 
+    Peer
 }
 
 ///
@@ -39,6 +60,18 @@ pub trait ModuleDataBus: Send + Sync{
     /// returns: Box<dyn CertificateService>: a boxed trait object of a CertificateService
     ///
     fn get_certificate_service(&self) -> Box<CertificateServiceBinder>;
+
+    ///
+    /// Gets a host type on which module is loaded
+    ///
+    fn get_host_type(&self) -> HostType;
+    
+    ///
+    /// Gets an ID of current host. Returns None if current host is not connected
+    /// 
+    /// returns: Option<u128>: ID of host or None
+    /// 
+    fn get_host_id(&self) -> Option<u128>;
 }
 
 ///

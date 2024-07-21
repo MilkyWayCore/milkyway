@@ -1,10 +1,9 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use libmilkyway::actor::binder::coroutine::BinderAsyncService;
-use libmilkyway::module::ModuleDataBus;
+use libmilkyway::module::{HostType, ModuleDataBus};
 use libmilkyway::services::certificate::{CertificateAsyncService, CertificateServiceBinder};
 use libmilkyway::services::name::NameService;
-use libmilkyway::transport::TransportService;
 use crate::services::certificate::CertificateServiceImpl;
 
 ///
@@ -32,7 +31,7 @@ impl CLIDataBus{
 }
 
 impl ModuleDataBus for CLIDataBus{
-    fn get_transport_service(&self) -> Box<dyn TransportService> {
+    fn get_transport_service(&self) {
         todo!()
     }
 
@@ -42,6 +41,14 @@ impl ModuleDataBus for CLIDataBus{
 
     fn get_certificate_service(&self) -> Box<CertificateServiceBinder> {
         self.certificate_service.lock().unwrap().bind()
+    }
+
+    fn get_host_type(&self) -> HostType {
+        HostType::CLI
+    }
+
+    fn get_host_id(&self) -> Option<u128> {
+        todo!()
     }
 }
 
