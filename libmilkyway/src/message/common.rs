@@ -278,6 +278,7 @@ mod tests {
             source: 0,
             destination: 0,
             module_id: 0,
+            certificate_id: 0,
         };
         let key = TestKey;
 
@@ -299,6 +300,7 @@ mod tests {
             source: 0,
             destination: 0,
             module_id: 0,
+            certificate_id: 0,
         };
         let key = TestKey;
 
@@ -323,6 +325,7 @@ mod tests {
             source: 42,
             destination: 84,
             module_id: 0,
+            certificate_id: 0,
         };
 
         let serialized = message.serialize();

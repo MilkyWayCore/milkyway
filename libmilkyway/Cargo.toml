@@ -1,6 +1,6 @@
 [package]
 name = "libmilkyway"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "libmilkyway is a part of milkyway project providing common protocols for communicating between MilkyWay modules"
 license = "AGPL-3.0-or-later"

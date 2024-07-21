@@ -4,6 +4,7 @@ use libmilkyway::actor::binder::coroutine::BinderAsyncService;
 use libmilkyway::module::{HostType, ModuleDataBus};
 use libmilkyway::services::certificate::{CertificateAsyncService, CertificateServiceBinder};
 use libmilkyway::services::name::NameService;
+use libmilkyway::services::transport::TransportService;
 use crate::services::certificate::CertificateServiceImpl;
 
 ///
@@ -31,7 +32,7 @@ impl CLIDataBus{
 }
 
 impl ModuleDataBus for CLIDataBus{
-    fn get_transport_service(&self) {
+    fn get_transport_service(&self) -> Box<(dyn TransportService + 'static)> {
         todo!()
     }
 
