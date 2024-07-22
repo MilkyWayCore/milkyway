@@ -223,6 +223,22 @@ impl CertificateService for CertificateServiceImpl {
         result
     }
 
+    fn remove_signing_certificate(&mut self, serial: u128) -> bool {
+        if !self.signing_certificates.contains_key(&serial){
+            return false;
+        }
+        self.signing_certificates.remove(&serial);
+        true
+    }
+
+    fn remove_encryption_certificate(&mut self, serial: u128) -> bool {
+        if !self.encryption_certificates.contains_key(&serial){
+            return false;
+        }
+        self.encryption_certificates.remove(&serial);
+        true
+    }
+
     #[inline]
     fn commit(&mut self) {
         self.dump(&self.storage_file_name);

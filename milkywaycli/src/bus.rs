@@ -5,7 +5,7 @@ use libmilkyway::module::{HostType, ModuleDataBus};
 use libmilkyway::services::certificate::{CertificateAsyncService, CertificateServiceBinder};
 use libmilkyway::services::name::NameService;
 use libmilkyway::services::transport::TransportService;
-use crate::services::certificate::CertificateServiceImpl;
+use libmilkyway::services::impls::certificate::AsyncCertificateServiceImpl;
 
 ///
 /// A DataBus for CLI program
@@ -19,9 +19,9 @@ impl CLIDataBus{
     pub fn new(certificate_storage: &str) -> CLIDataBus{
         let fpath = Path::new(certificate_storage);
         let service_impl = if fpath.exists(){
-            CertificateServiceImpl::load_from_file(certificate_storage)
+            AsyncCertificateServiceImpl::load_from_file(certificate_storage)
         } else {
-            CertificateServiceImpl::new(certificate_storage)
+            AsyncCertificateServiceImpl::new(certificate_storage)
         };
         let service = Box::new(service_impl);
         let service = BinderAsyncService::run(service);
@@ -32,7 +32,7 @@ impl CLIDataBus{
 }
 
 impl ModuleDataBus for CLIDataBus{
-    fn get_transport_service(&self) -> Box<(dyn TransportService + 'static)> {
+    fn get_transport_service(&self) -> Box<dyn TransportService> {
         todo!()
     }
 
