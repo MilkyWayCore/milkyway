@@ -1,22 +1,27 @@
 use std::mem::size_of;
+use std::result;
 use async_trait::async_trait;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use crate::message::common::Message;
 use crate::serialization::deserializable::Deserializable;
 use crate::serialization::serializable::{Serializable, Serialized};
-use crate::tokio::tokio_timeout;
-use crate::transport::{AsyncTransport, TransportTransformer};
+use crate::tokio::{tokio_block_on, tokio_timeout};
+use crate::transport::{AsyncTransport, TransportChannel, TransportTransformer};
 
 ///
 /// A transport over a tokio stream.
 ///
-pub struct StreamTransport<T: AsyncReadExt + AsyncWriteExt + Send + Unpin>{
+pub struct TokioStreamTransport<T: AsyncReadExt + AsyncWriteExt + Sync + Send + Unpin>{
     stream: T,
     transformers: Vec<Box<dyn TransportTransformer>>,
 }
 
-impl<T: AsyncReadExt + AsyncWriteExt + Send + Unpin> StreamTransport<T> {
-    pub fn from_stream(stream: T) -> StreamTransport<T>{
-        StreamTransport{
+impl<T: AsyncReadExt + AsyncWriteExt + Sync + Send + Unpin> TokioStreamTransport<T> {
+    ///
+    /// Creates a transport from tokio stream
+    /// 
+    pub fn from_stream(stream: T) -> TokioStreamTransport<T>{
+        TokioStreamTransport {
             stream,
             transformers: vec![],
         }
@@ -29,16 +34,22 @@ impl<T: AsyncReadExt + AsyncWriteExt + Send + Unpin> StreamTransport<T> {
         data
     }
     
-    fn apply_detransform(&self, mut data: Serialized) -> Serialized{
+    fn apply_detransform(&self, mut data: Serialized) -> Option<Serialized>{
         for transformer in self.transformers.iter().rev(){
-            data = transformer.detransform(&data).expect("REASON");
+            let data_result = transformer.detransform(&data);
+            if data_result.is_err(){
+                log::error!("Can not detransform data: {:?}", 
+                    data_result.err().unwrap());
+                return None;
+            }
+            data = data_result.unwrap();
         }
-        data
+        Some(data)
     }
 }
 
 #[async_trait]
-impl<T: AsyncReadExt + AsyncWriteExt + Send + Unpin> AsyncTransport for StreamTransport<T> {
+impl<T: AsyncReadExt + AsyncWriteExt + Send + Sync + Unpin> AsyncTransport for TokioStreamTransport<T> {
     #[inline]
     async fn send_raw(&mut self, data: Serialized) -> Result<usize, tokio::io::Error> {
         let data = self.apply_transform(data);
@@ -86,13 +97,44 @@ impl<T: AsyncReadExt + AsyncWriteExt + Send + Unpin> AsyncTransport for StreamTr
         if result.unwrap() < data_size_unwrapped{
             return None;
         }
-        Some(self.apply_detransform(data_buf))
+        let detransform_result = self.apply_detransform(data_buf);
+        if detransform_result.is_none(){
+            return None;
+        }
+        Some(detransform_result.unwrap())
     }
 
     #[inline]
     fn add_transformer<'a>(&'a mut self, transformer: Box<dyn TransportTransformer>) -> &'a Self {
         self.transformers.push(transformer);
         self
+    }
+}
+
+impl<T> TransportChannel for TokioStreamTransport<T> 
+    where T: AsyncReadExt + AsyncWriteExt + Sync + Send + Unpin{
+    fn recv(&mut self, timeout: Option<u64>) -> Option<Message> {
+        let result = tokio_block_on(async {
+            self.receive(timeout).await
+        });
+        if result.is_none(){
+            return None;
+        }
+        let result = result.unwrap();
+        if result.is_err(){
+            log::error!("Can not receive message: {:?}", result.err().unwrap());
+            return None;
+        }
+        result.unwrap()
+    }
+
+    fn send(&mut self, message: Message) {
+        tokio_block_on(async {
+            let result = self.send_raw(message.serialize()).await;
+            if result.is_err(){
+                log::error!("Can not send message: {:?}", result.err().unwrap());
+            }
+        });
     }
 }
 
@@ -110,7 +152,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_raw() {
         let (client, mut server) = duplex(64);
-        let mut client_transport = StreamTransport::from_stream(client);
+        let mut client_transport = TokioStreamTransport::from_stream(client);
         //let mut server_transport = StreamTransport::from_stream(server);
 
         let data: Serialized = vec![1, 2, 3, 4, 5];
@@ -133,7 +175,7 @@ mod tests {
     #[tokio::test]
     async fn test_receive_raw() {
         let (client, mut server) = duplex(64);
-        let mut transport = StreamTransport::from_stream(client);
+        let mut transport = TokioStreamTransport::from_stream(client);
 
         let data: Serialized = vec![1, 2, 3, 4, 5];
         let data_size = data.len();
@@ -149,7 +191,7 @@ mod tests {
     #[tokio::test]
     async fn test_receive_raw_with_timeout() {
         let (client, _server) = duplex(64);
-        let mut transport = StreamTransport::from_stream(client);
+        let mut transport = TokioStreamTransport::from_stream(client);
 
         let result = timeout(Duration::from_millis(120), transport.receive_raw(Some(100))).await;
 
@@ -159,8 +201,8 @@ mod tests {
     #[tokio::test]
     async fn test_send_and_receive() {
         let (client, server) = duplex(64);
-        let mut client_transport = StreamTransport::from_stream(client);
-        let mut server_transport = StreamTransport::from_stream(server);
+        let mut client_transport = TokioStreamTransport::from_stream(client);
+        let mut server_transport = TokioStreamTransport::from_stream(server);
 
         let data: Serialized = vec![1, 2, 3, 4, 5];
         client_transport.send_raw(data.clone()).await.unwrap();

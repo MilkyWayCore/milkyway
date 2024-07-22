@@ -1,5 +1,6 @@
 use libmilkyway::get_timestamp_with_milliseconds;
-use libmilkyway::message::common::Message;
+use libmilkyway::message::common::{AsMessage, Message};
+use libmilkyway::message::ping::PongMessage;
 use libmilkyway::message::types::MessageType;
 use libmilkyway::services::transport::TransportServiceListener;
 use libmilkyway::transport::Transport;
@@ -30,18 +31,9 @@ impl TransportServiceListener for PingResponder{
                 message.id, message.module_id);
             return;
         }
-        let pong = Message{
-            id: 0, /* Should be set by transport */
-            timestamp: get_timestamp_with_milliseconds(),
-            message_type: MessageType::Pong,
-            data: None,
-            signature: None, /* Should be set by transport */
-            source: self.source_id,
-            destination: message.source,
-            module_id: self.module_id,
-        };
+        let pong = PongMessage::from_ping_message(&message);
         // We don't actually care if this message ever reaches recepient, so no reason for blocking
         // current thread/coroutine
-        self.transport.send_non_blocking(message.source, pong);
+        self.transport.send_non_blocking(message.source, pong.as_message());
     }
 }
