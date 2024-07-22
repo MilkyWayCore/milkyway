@@ -14,7 +14,7 @@ pub const TRANSPORT_TARGET_SERVER: u128 = 1;
 /// The extensions allow to transform/detransform data.
 /// Each Transport SHOULD NOT have more than one transformer.
 ///
-pub trait TransportTransformer: Send{
+pub trait TransportTransformer: Send + Sync{
     ///
     /// Detransforms received data
     /// E.g. decrypts it.
@@ -179,11 +179,11 @@ pub trait TransportChannel: Send + Sync {
     /// Receives message with timeout.
     /// 
     /// # Arguments
-    /// * timeout: A timeout in milliseconds to wait. MUST wait undefinetely if timeout is 0
+    /// * timeout: A timeout in milliseconds to wait. MUST wait undefinetely if timeout is 0 or None
     /// 
     /// returns: Either a message or None if timed-out waiting
     /// 
-    fn recv(&mut self, timeout: u64) -> Option<Message>;
+    fn recv(&mut self, timeout: Option<u64>) -> Option<Message>;
     
     ///
     /// Sends a message

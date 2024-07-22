@@ -71,7 +71,7 @@ pub trait TransportService: Send + Sync{
     /// # Arguments
     /// * id: u128: ID to get transport to
     /// 
-    /// returns: Boxed transport or None if peer does not exist
+    /// returns: Boxed transport channel or None if peer does not exist
     /// 
     fn get_transport_channel(&mut self, id: u128) -> Option<Box<dyn TransportChannel>>;
 
