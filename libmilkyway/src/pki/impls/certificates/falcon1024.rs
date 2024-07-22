@@ -69,6 +69,12 @@ impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024Certifi
         m_copy
     }
 
+    fn clone_without_sk(&self) -> Self {
+        let mut m_copy = self.clone();
+        m_copy.secret_key = None;
+        m_copy
+    }
+
     #[inline]
     fn get_name(&self) -> String {
         self.name.clone()
@@ -135,6 +141,12 @@ impl Certificate<Falcon1024PublicKey, Falcon1024SecretKey> for Falcon1024RootCer
 
     fn clone_without_signature(&self) -> Self {
         panic!("Root key does not have signature");
+    }
+
+    fn clone_without_sk(&self) -> Self {
+        let mut m_copy = self.clone();
+        m_copy.secret_key = None;
+        m_copy
     }
 
     #[inline]

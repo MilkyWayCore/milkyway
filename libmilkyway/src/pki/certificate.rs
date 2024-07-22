@@ -76,6 +76,11 @@ pub trait  Certificate<PK: CryptoKey, SK: CryptoKey>: Serializable + Deserializa
     fn clone_without_signature(&self) -> Self;
 
     ///
+    /// Clones certificate without secret key(used for sending it over unprotected channels)
+    ///
+    fn clone_without_sk(&self) -> Self;
+
+    ///
     /// Signs piece of data with certificate secret key
     /// # Arguments
     ///
