@@ -20,6 +20,7 @@ pub struct Kyber1024Certificate{
     pub flags: u128,
 }
 
+
 impl Certificate<kyber1024::PublicKey, kyber1024::SecretKey> for Kyber1024Certificate{
     #[inline]
     fn get_type() -> CertificateType {
@@ -61,6 +62,12 @@ impl Certificate<kyber1024::PublicKey, kyber1024::SecretKey> for Kyber1024Certif
     fn clone_without_signature(&self) -> Self {
         let mut m_copy = self.clone_without_signature_and_sk();
         m_copy.signature = None;
+        m_copy
+    }
+    
+    fn clone_without_sk(&self) -> Kyber1024Certificate {
+        let mut m_copy = self.clone();
+        m_copy.secret_key = None;
         m_copy
     }
 

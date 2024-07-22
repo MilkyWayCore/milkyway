@@ -49,6 +49,11 @@ pub mod cli;
 /// 
 pub mod actor;
 
+///
+/// Common controllers
+/// 
+pub mod controllers;
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 ///
