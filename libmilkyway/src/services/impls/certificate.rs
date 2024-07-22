@@ -1,48 +1,48 @@
-use libmilkyway::serialization::deserializable::Deserializable;
-use libmilkyway::serialization::error::SerializationError;
-use libmilkyway::serialization::serializable::Serialized;
-use libmilkyway::serialization::serializable::Serializable;
+use crate::serialization::deserializable::Deserializable;
+use crate::serialization::error::SerializationError;
+use crate::serialization::serializable::Serialized;
+use crate::serialization::serializable::Serializable;
 use std::collections::HashMap;
 use std::path::Path;
-use libmilkyway::actor::binder::BinderServiceHandler;
-use libmilkyway::pki::certificate::Certificate;
-use libmilkyway::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
-use libmilkyway::pki::impls::certificates::kyber1024::Kyber1024Certificate;
-use libmilkyway::services::certificate::{CertificateService, CertificateServiceBinderRequest, CertificateServiceBinderResponse};
+use crate::actor::binder::BinderServiceHandler;
+use crate::pki::certificate::Certificate;
+use crate::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
+use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
+use crate::services::certificate::{CertificateService, CertificateServiceBinderRequest, CertificateServiceBinderResponse};
 use libmilkyway_derive::{Deserializable, Serializable};
 
 
 #[derive(Serializable, Deserializable)]
-pub(crate) struct CertificateServiceImpl{
+pub struct AsyncCertificateServiceImpl {
     storage_file_name: String,
     root_certificate: Option<Falcon1024RootCertificate>,
     signing_certificates: HashMap<u128, Falcon1024Certificate>,
     encryption_certificates: HashMap<u128, Kyber1024Certificate>,
 }
 
-impl CertificateServiceImpl {
+impl AsyncCertificateServiceImpl {
     ///
     /// Creates a new CertificateServiceImpl storing data in provided file
-    /// 
-    pub fn new(filename: &str) -> CertificateServiceImpl{
-        CertificateServiceImpl{
+    ///
+    pub fn new(filename: &str) -> AsyncCertificateServiceImpl {
+        AsyncCertificateServiceImpl {
             storage_file_name: filename.to_string(),
             root_certificate: None,
             signing_certificates: HashMap::new(),
             encryption_certificates: HashMap::new(),
         }
     }
-    
+
     #[inline]
-    pub fn load_from_file(file: &str) -> CertificateServiceImpl{
-        let mut service = CertificateServiceImpl::from_file(Path::new(file)).expect("Failed to load certificate storage");
+    pub fn load_from_file(file: &str) -> AsyncCertificateServiceImpl {
+        let mut service = AsyncCertificateServiceImpl::from_file(Path::new(file)).expect("Failed to load certificate storage");
         service.storage_file_name = file.to_string();
         service
     }
 }
 
 
-impl CertificateService for CertificateServiceImpl {
+impl CertificateService for AsyncCertificateServiceImpl {
     #[inline]
     fn set_root_certificate(&mut self, root_cert: Falcon1024RootCertificate) {
         self.root_certificate = Some(root_cert);
@@ -149,7 +149,7 @@ impl CertificateService for CertificateServiceImpl {
                 return false;
             }
             let is_valid = parent_cert.verify_signature(&current_cert.clone_without_signature(),
-                                         &signature_result.unwrap());
+                                                        &signature_result.unwrap());
             if !is_valid{
                 // One of certificates is tampered
                 return false;
@@ -246,7 +246,7 @@ impl CertificateService for CertificateServiceImpl {
 }
 
 //FIXME: Still no idea why I ever should write this mess
-impl BinderServiceHandler<CertificateServiceBinderRequest, CertificateServiceBinderResponse> for CertificateServiceImpl {
+impl BinderServiceHandler<CertificateServiceBinderRequest, CertificateServiceBinderResponse> for AsyncCertificateServiceImpl {
     fn handle_message(&mut self, request: CertificateServiceBinderRequest) -> CertificateServiceBinderResponse {
         let ptr: &mut dyn CertificateService = self;
         ptr.handle_message(request)
@@ -256,10 +256,10 @@ impl BinderServiceHandler<CertificateServiceBinderRequest, CertificateServiceBin
 #[cfg(test)]
 mod tests {
     use super::*;
-    use libmilkyway::pki::impls::keys::falcon1024::{generate_falcon1024_keypair};
-    use libmilkyway::pki::impls::keys::kyber1024::{generate_kyber1024_keypair};
+    use crate::pki::impls::keys::falcon1024::{generate_falcon1024_keypair};
+    use crate::pki::impls::keys::kyber1024::{generate_kyber1024_keypair};
     use std::collections::HashMap;
-    use libmilkyway::pki::hash::HashType;
+    use crate::pki::hash::HashType;
 
     fn create_test_root_certificate() -> Falcon1024RootCertificate {
         let (public_key, secret_key) = generate_falcon1024_keypair();
@@ -305,7 +305,7 @@ mod tests {
     #[test]
     fn test_set_root_certificate() {
         let root_cert = create_test_root_certificate();
-        let mut service = CertificateServiceImpl {
+        let mut service = AsyncCertificateServiceImpl {
             storage_file_name: "test_storage.bin".to_string(),
             root_certificate: None,
             signing_certificates: HashMap::new(),
@@ -318,7 +318,7 @@ mod tests {
     #[test]
     fn test_add_signing_certificate() {
         let root_cert = create_test_root_certificate();
-        let mut service = CertificateServiceImpl {
+        let mut service = AsyncCertificateServiceImpl {
             storage_file_name: "test_storage.bin".to_string(),
             root_certificate: Some(root_cert.clone()),
             signing_certificates: HashMap::new(),
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     fn test_add_invalid_signing_certificate() {
         let root_cert = create_test_root_certificate();
-        let mut service = CertificateServiceImpl {
+        let mut service = AsyncCertificateServiceImpl {
             storage_file_name: "test_storage.bin".to_string(),
             root_certificate: Some(root_cert.clone()),
             signing_certificates: HashMap::new(),
@@ -346,7 +346,7 @@ mod tests {
     #[test]
     fn test_add_encryption_certificate() {
         let root_cert = create_test_root_certificate();
-        let mut service = CertificateServiceImpl {
+        let mut service = AsyncCertificateServiceImpl {
             storage_file_name: "test_storage.bin".to_string(),
             root_certificate: Some(root_cert.clone()),
             signing_certificates: HashMap::new(),
@@ -364,7 +364,7 @@ mod tests {
     #[test]
     fn test_add_invalid_encryption_certificate() {
         let root_cert = create_test_root_certificate();
-        let mut service = CertificateServiceImpl {
+        let mut service = AsyncCertificateServiceImpl {
             storage_file_name: "test_storage.bin".to_string(),
             root_certificate: Some(root_cert.clone()),
             signing_certificates: HashMap::new(),
@@ -381,7 +381,7 @@ mod tests {
     #[test]
     fn test_verify_signing_certificate() {
         let root_cert = create_test_root_certificate();
-        let mut service = CertificateServiceImpl {
+        let mut service = AsyncCertificateServiceImpl {
             storage_file_name: "test_storage.bin".to_string(),
             root_certificate: Some(root_cert.clone()),
             signing_certificates: HashMap::new(),
@@ -395,7 +395,7 @@ mod tests {
     #[test]
     fn test_verify_invalid_signing_certificate() {
         let root_cert = create_test_root_certificate();
-        let mut service = CertificateServiceImpl {
+        let mut service = AsyncCertificateServiceImpl {
             storage_file_name: "test_storage.bin".to_string(),
             root_certificate: Some(root_cert.clone()),
             signing_certificates: HashMap::new(),
@@ -409,7 +409,7 @@ mod tests {
     #[test]
     fn test_verify_encryption_certificate() {
         let root_cert = create_test_root_certificate();
-        let mut service = CertificateServiceImpl {
+        let mut service = AsyncCertificateServiceImpl {
             storage_file_name: "test_storage.bin".to_string(),
             root_certificate: Some(root_cert.clone()),
             signing_certificates: HashMap::new(),
@@ -426,7 +426,7 @@ mod tests {
     #[test]
     fn test_verify_invalid_encryption_certificate() {
         let root_cert = create_test_root_certificate();
-        let mut service = CertificateServiceImpl {
+        let mut service = AsyncCertificateServiceImpl {
             storage_file_name: "test_storage.bin".to_string(),
             root_certificate: Some(root_cert.clone()),
             signing_certificates: HashMap::new(),
