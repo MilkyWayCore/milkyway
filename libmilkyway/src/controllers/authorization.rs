@@ -36,6 +36,7 @@ pub struct AuthorizationController{
 #[derive(Clone, Serializable, Deserializable)]
 pub struct AuthorizationMessage{
     encryption_certificate: Kyber1024Certificate,
+    signing_certificate: Falcon1024Certificate,
     signing_chain: Vec<Falcon1024Certificate>,
     signature: Option<Signature>,
 }
@@ -105,16 +106,17 @@ impl AuthorizationController {
                 parent_serial = certificate.get_parent_serial().expect("Must have a parent serial");
             }
         }
-        let mut message = AuthorizationMessage{
-            encryption_certificate: certificate.clone_without_sk(),
-            signing_chain: chain,
-            signature: None,
-        };
         let signing_certificate = self.certificate_service_binder.get_signing_certificate(signing_serial);
         if signing_certificate.is_none(){
             return Err("Can not find a certificate used for signing with provided serial");
         }
         let signing_certificate = signing_certificate.unwrap();
+        let mut message = AuthorizationMessage{
+            encryption_certificate: certificate.clone_without_sk(),
+            signing_certificate: signing_certificate.clone(),
+            signing_chain: chain,
+            signature: None,
+        };
         if !signing_certificate.check_flag(FLAG_SIGN_MESSAGES){
             return Err("Provided signing certificate is not allowed to sign messages");
         }
@@ -124,5 +126,44 @@ impl AuthorizationController {
         }
         message.signature = Some(signature.unwrap());
         Ok(message)
+    }
+    
+    
+    ///
+    /// Checks an authorization message
+    /// 
+    /// # Arguments
+    /// * message: a message to verify
+    /// 
+    /// returns: None if verification failed, pair of signing and encryption certificates otherwise
+    /// 
+    pub fn check_authorization_message(&mut self, 
+                                       message: AuthorizationMessage) -> Option<(Falcon1024Certificate, Kyber1024Certificate)>{
+        let signing_certificate  = message.signing_certificate.clone();
+        if signing_certificate.signature.is_none(){
+            /* Unsigned certificate */
+            return None;
+        }
+        for cert in &message.signing_chain{
+            if !self.certificate_service_binder.add_signing_certificate(cert.clone()){
+                // Invalid certificate
+                return None;
+            }
+        }
+        if !self.certificate_service_binder.verify_signing_certificate(&signing_certificate){
+            /* Certificate is invalid event though chain was updated */
+            return None;
+        }
+        let message_no_signature = message.clone_without_signature();
+        if !signing_certificate.verify_signature(&message_no_signature, &message.signature.unwrap()){
+            /* Message signature invalid */
+            return None;
+        }
+        if !self.certificate_service_binder.verify_encryption_certificate(&message.encryption_certificate){
+            /* The encryption certificate is invalid */
+            return None;
+        }
+        self.certificate_service_binder.add_encryption_certificate(message.encryption_certificate.clone());
+        return Some((message.signing_certificate, message.encryption_certificate));
     }
 }
