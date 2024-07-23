@@ -5,6 +5,7 @@ use crate::transport::{TransportListener, TransportSender};
 /// A struct for filtering messages.
 /// The operator between fields is AND
 ///
+#[derive(Clone)]
 pub struct MessageFilter{
     pub from_id: Option<u128>,
     pub module_id: Option<u64>,
