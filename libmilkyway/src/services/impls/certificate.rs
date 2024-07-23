@@ -5,7 +5,7 @@ use crate::serialization::serializable::Serializable;
 use std::collections::HashMap;
 use std::path::Path;
 use crate::actor::binder::BinderServiceHandler;
-use crate::pki::certificate::Certificate;
+use crate::pki::certificate::{Certificate, FLAG_SIGN_CERTS};
 use crate::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
 use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
 use crate::services::certificate::{CertificateService, CertificateServiceBinderRequest, CertificateServiceBinderResponse};
@@ -143,6 +143,10 @@ impl CertificateService for AsyncCertificateServiceImpl {
                 return false;
             }
             let parent_cert = parent_cert_result.unwrap();
+            if !parent_cert.check_flag(FLAG_SIGN_CERTS){
+                // Can not sign other certificates
+                return false;
+            }
             let signature_result = current_cert.get_signature();
             if signature_result.is_none(){
                 // Unsigned certificate
@@ -183,6 +187,10 @@ impl CertificateService for AsyncCertificateServiceImpl {
         if !self.verify_signing_certificate(&parent){
             // Parent is invalid
             println!("Parent is invalid");
+            return false;
+        }
+        if !parent.check_flag(FLAG_SIGN_CERTS){
+            // Parent can not sign other certs
             return false;
         }
         return parent.verify_signature(&cert.clone_without_signature_and_sk(), &signature);
@@ -283,7 +291,7 @@ mod tests {
             public_key,
             signature: None,
             name: "".to_string(),
-            flags: 0,
+            flags: FLAG_SIGN_CERTS,
         };
         let signature = root_cert.sign_data(&cert.clone_without_signature_and_sk(), HashType::None).unwrap();
         cert.signature = Some(signature);
