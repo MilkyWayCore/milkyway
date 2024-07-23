@@ -163,22 +163,26 @@ impl CertificateService for AsyncCertificateServiceImpl {
         let parent_id = cert.get_parent_serial();
         if parent_id.is_none(){
             // Unsigned certificate
+            println!("Unsigned");
             return false;
         }
         let signature = cert.get_signature();
         if signature.is_none(){
             // Unsigned certificate
+            println!("Unsigned: bad sig");
             return false;
         }
         let signature = signature.unwrap();
         let parent = self.get_signing_certificate(parent_id.unwrap());
         if parent.is_none(){
             // No such signing certificate
+            println!("Orpahned: parent lost");
             return false;
         }
         let parent = parent.unwrap();
         if !self.verify_signing_certificate(&parent){
             // Parent is invalid
+            println!("Parent is invalid");
             return false;
         }
         return parent.verify_signature(&cert.clone_without_signature_and_sk(), &signature);

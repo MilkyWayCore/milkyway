@@ -127,17 +127,17 @@ impl AuthorizationController {
         message.signature = Some(signature.unwrap());
         Ok(message)
     }
-    
-    
+
+
     ///
     /// Checks an authorization message
-    /// 
+    ///
     /// # Arguments
     /// * message: a message to verify
-    /// 
+    ///
     /// returns: None if verification failed, pair of signing and encryption certificates otherwise
-    /// 
-    pub fn check_authorization_message(&mut self, 
+    ///
+    pub fn check_authorization_message(&mut self,
                                        message: AuthorizationMessage) -> Option<(Falcon1024Certificate, Kyber1024Certificate)>{
         let signing_certificate  = message.signing_certificate.clone();
         if signing_certificate.signature.is_none(){
@@ -165,5 +165,109 @@ impl AuthorizationController {
         }
         self.certificate_service_binder.add_encryption_certificate(message.encryption_certificate.clone());
         return Some((message.signing_certificate, message.encryption_certificate));
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::pki::certificate::{Certificate, FLAG_SIGN_CERTS, FLAG_SIGN_MESSAGES};
+    use crate::pki::hash::HashType;
+    use crate::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
+    use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
+    use crate::actor::binder::coroutine::BinderAsyncService;
+    use crate::pki::impls::keys::falcon1024::generate_falcon1024_keypair;
+    use crate::pki::impls::keys::kyber1024::generate_kyber1024_keypair;
+    use crate::services::impls::certificate::AsyncCertificateServiceImpl;
+    use crate::tokio::init_tokio;
+    
+    fn create_sample_certificates() -> (Kyber1024Certificate, Falcon1024RootCertificate, Falcon1024Certificate) {
+        // Create some sample certificates for testing
+        let (root_public_key, root_secret_key) = generate_falcon1024_keypair();
+        let root_certificate = Falcon1024RootCertificate {
+            secret_key: Some(root_secret_key),
+            public_key: root_public_key.clone(),
+            name: "test".to_string(),
+        };
+        let (encipherment_public_key, encipherment_secret_key) = generate_kyber1024_keypair();
+        let mut encryption_cert = Kyber1024Certificate {
+            serial_number: 2,
+            parent_serial_number: 1,
+            secret_key: Some(encipherment_secret_key),
+            public_key: encipherment_public_key.clone(),
+            signature: None,
+            name: "test".to_string(),
+            flags: 0,
+        };
+        let (signing_public_key, signing_secret_key) = generate_falcon1024_keypair();
+        let mut signing_certificate = Falcon1024Certificate {
+            serial_number: 1,
+            parent_serial_number: 0,
+            secret_key: Some(signing_secret_key),
+            public_key: signing_public_key.clone(),
+            signature: None,
+            name: "test".to_string(),
+            flags: FLAG_SIGN_MESSAGES | FLAG_SIGN_CERTS,
+        };
+        signing_certificate.signature = Some(root_certificate.sign_data(&signing_certificate.clone_without_signature_and_sk(),
+                                                                        HashType::None).unwrap());
+        encryption_cert.signature = Some(signing_certificate.sign_data(&encryption_cert.clone_without_signature_and_sk(), HashType::None).unwrap());
+
+
+        (encryption_cert, root_certificate, signing_certificate)
+    }
+
+    #[test]
+    fn test_generate_authorization_message() {
+        init_tokio();
+        let mut service = BinderAsyncService::run(Box::new(AsyncCertificateServiceImpl::new("/tmp/test.dat")));
+        let mut binder = service.bind();
+        let (encryption_cert, root_certificate, signing_cert) = create_sample_certificates();
+        binder.set_root_certificate(root_certificate.clone());
+        assert!(binder.add_signing_certificate(signing_cert.clone()));
+        assert!(binder.add_encryption_certificate(encryption_cert.clone()));
+
+        let mut controller = AuthorizationController::new(binder);
+
+        let result = controller.generate_authorization_message(2, 1, false);
+        assert!(result.is_ok());
+        let auth_message = result.unwrap();
+        assert_eq!(auth_message.encryption_certificate.get_serial(), 2);
+        assert_eq!(auth_message.signing_certificate.get_serial(), 1);
+        assert!(auth_message.signature.is_some());
+    }
+
+    #[test]
+    fn test_check_authorization_message() {
+        init_tokio();
+        let mut service = BinderAsyncService::run(Box::new(AsyncCertificateServiceImpl::new("/tmp/test.dat")));
+        let mut binder = service.bind();
+        let (encryption_cert, root_certificate, signing_cert) = create_sample_certificates();
+        binder.set_root_certificate(root_certificate.clone());
+        assert!(binder.add_signing_certificate(signing_cert.clone()));
+        assert!(binder.add_encryption_certificate(encryption_cert.clone()));
+        binder.add_encryption_certificate(encryption_cert.clone());
+        binder.add_signing_certificate(signing_cert.clone());
+
+        let mut controller = AuthorizationController::new(binder);
+
+        let message = AuthorizationMessage {
+            encryption_certificate: encryption_cert.clone(),
+            signing_certificate: signing_cert.clone(),
+            signing_chain: vec![],
+            signature: None,
+        };
+
+        let signature = signing_cert.sign_data(&message.clone_without_signature(), HashType::None).unwrap();
+        let mut signed_message = message.clone();
+        signed_message.signature = Some(signature);
+
+        let result = controller.check_authorization_message(signed_message);
+
+        assert!(result.is_some());
+        let (signing_cert_out, encryption_cert_out) = result.unwrap();
+        assert_eq!(signing_cert_out.get_serial(), signing_cert.get_serial());
+        assert_eq!(encryption_cert_out.get_serial(), encryption_cert.get_serial());
     }
 }

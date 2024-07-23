@@ -99,6 +99,7 @@ mod tests {
     use crate::serialization::deserializable::Deserializable;
     use crate::pki::hash::HashType;
     use crate::pki::impls::certificates::falcon1024::Falcon1024RootCertificate;
+    use crate::pki::impls::keys::falcon1024::generate_falcon1024_keypair;
 
     #[derive(Clone, Serializable, Deserializable, Debug, PartialEq)]
     struct TestData {
@@ -111,8 +112,7 @@ mod tests {
 
     #[test]
     fn test_full_pki_use_case() {
-        let (root_public_key, root_secret_key) =
-            crate::pki::impls::keys::falcon1024::generate_falcon1024_keypair();
+        let (root_public_key, root_secret_key) = generate_falcon1024_keypair();
         let (encipherment_public_key, encipherment_secret_key) = generate_kyber1024_keypair();
 
         let root_certificate = Falcon1024RootCertificate {
@@ -132,13 +132,13 @@ mod tests {
         };
 
         // Sign the encipherment certificate with the root certificate
-        let signature = root_certificate.sign_data(&encipherment_certificate.clone_without_signature(),
+        let signature = root_certificate.sign_data(&encipherment_certificate.clone_without_signature_and_sk(),
                                                    HashType::None).unwrap();
         let mut signed_certificate = encipherment_certificate.clone();
         signed_certificate.signature = Some(signature.clone());
 
         // Verify the signature on the signed certificate
-        assert!(root_certificate.verify_signature(&signed_certificate.clone_without_signature(),
+        assert!(root_certificate.verify_signature(&signed_certificate.clone_without_signature_and_sk(),
                                                   &signature));
 
         // Test message encryption and decryption
@@ -159,7 +159,7 @@ mod tests {
         // Tamper with the certificate
         let mut tampered_certificate = signed_certificate.clone();
         tampered_certificate.serial_number = 2;
-        assert!(!root_certificate.verify_signature(&tampered_certificate.clone_without_signature(),
+        assert!(!root_certificate.verify_signature(&tampered_certificate.clone_without_signature_and_sk(),
                                                    &signature));
     }
 
