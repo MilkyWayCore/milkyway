@@ -1,5 +1,5 @@
 use crate::message::common::Message;
-use crate::transport::{Transport, TransportChannel};
+use crate::transport::{TransportListener, TransportSender};
 
 ///
 /// A struct for filtering messages.
@@ -49,39 +49,10 @@ impl MessageFilter {
 }
 
 ///
-/// A trait which is capable of receiving messages and handling them
-///
-pub trait TransportServiceListener: Send + Sync{
-    ///
-    /// Called when message is received 
-    /// 
-    /// # Arguments
-    /// * message: Message: the message which was received
-    fn on_receive_message(&mut self, message: Message);
-}
-
-///
 /// A transport service trait which allows access to communications for
 /// modules
 /// 
 pub trait TransportService: Send + Sync{
-    ///
-    /// Gets direct transport to peer with given ID
-    /// 
-    /// # Arguments
-    /// * id: u128: ID to get transport to
-    /// 
-    /// returns: Boxed transport channel or None if peer does not exist
-    /// 
-    fn get_transport_channel(&mut self, id: u128) -> Option<Box<dyn TransportChannel>>;
-
-    ///
-    /// Gets a global transport controller which allows to send messages anywhere
-    ///
-    /// returns: Boxed transport
-    ///
-    fn get_transport(&mut self) -> Box<dyn Transport>;
-    
     ///
     /// Subscribes to messages with given message filter and listener
     /// 
@@ -93,7 +64,7 @@ pub trait TransportService: Send + Sync{
     /// 
     fn subscribe_to_messages(&mut self,
                              filter: &MessageFilter,
-                             listener: Box<dyn TransportServiceListener>) -> u128;
+                             listener: Box<dyn TransportListener>) -> u128;
     
     ///
     /// Unsubscribes from messages
@@ -102,4 +73,22 @@ pub trait TransportService: Send + Sync{
     /// * filter_id: u128: ID of filter to unsubscribe
     ///
     fn unsubscribe(&mut self, filter_id: u128);
+
+    ///
+    /// Gets a global transport sender allowing to send messages
+    /// anywhere
+    ///
+    /// returns: Box-ed TransportSender trait object
+    fn get_sender(&mut self) -> Box<dyn TransportSender>;
+    
+    ///
+    /// Blocks current coroutine thread and waits for message from certain peer
+    /// 
+    /// # Arguments
+    /// * source: u128: source from which we wait for message
+    /// * timeout: Option<u64>: optional timeout
+    /// 
+    /// returns: Some message or none if time-out waiting it.
+    /// 
+    fn blocking_recv(&mut self, source: u128, timeout: Option<u64>) -> Option<Message>;
 }

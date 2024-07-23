@@ -3,6 +3,7 @@ use crate::serialization::deserializable::Deserializable;
 use crate::serialization::serializable::Serializable;
 use libmilkyway_derive::{Deserializable, Serializable};
 use crate::actor::binder::Binder;
+use crate::get_timestamp_with_milliseconds;
 use crate::pki::certificate::{Certificate, FLAG_SIGN_CERTS, FLAG_SIGN_MESSAGES};
 use crate::pki::hash::HashType;
 use crate::pki::impls::certificates::falcon1024::Falcon1024Certificate;
@@ -38,6 +39,7 @@ pub struct AuthorizationMessage{
     encryption_certificate: Kyber1024Certificate,
     signing_certificate: Falcon1024Certificate,
     signing_chain: Vec<Falcon1024Certificate>,
+    timestamp: u128,
     signature: Option<Signature>,
 }
 
@@ -115,6 +117,7 @@ impl AuthorizationController {
             encryption_certificate: certificate.clone_without_sk(),
             signing_certificate: signing_certificate.clone(),
             signing_chain: chain,
+            timestamp: get_timestamp_with_milliseconds(),
             signature: None,
         };
         if !signing_certificate.check_flag(FLAG_SIGN_MESSAGES){
@@ -268,6 +271,7 @@ mod tests {
             signing_certificate: signing_cert.clone(),
             signing_chain: vec![],
             signature: None,
+            timestamp: 0,
         };
 
         let signature = signing_cert.sign_data(&message.clone_without_signature(), HashType::None).unwrap();
