@@ -3,7 +3,7 @@ use crate::serialization::deserializable::Deserializable;
 use crate::serialization::serializable::Serializable;
 use libmilkyway_derive::{Deserializable, Serializable};
 use crate::actor::binder::Binder;
-use crate::pki::certificate::{Certificate, FLAG_SIGN_MESSAGES};
+use crate::pki::certificate::{Certificate, FLAG_SIGN_CERTS, FLAG_SIGN_MESSAGES};
 use crate::pki::hash::HashType;
 use crate::pki::impls::certificates::falcon1024::Falcon1024Certificate;
 use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
@@ -144,9 +144,18 @@ impl AuthorizationController {
             /* Unsigned certificate */
             return None;
         }
+        if !signing_certificate.check_flag(FLAG_SIGN_MESSAGES){
+            /* Wrong flags */
+            println!("Signing certificate can not sign messages");
+            return None;
+        }
         for cert in &message.signing_chain{
             if !self.certificate_service_binder.add_signing_certificate(cert.clone()){
                 // Invalid certificate
+                return None;
+            }
+            if !cert.check_flag(FLAG_SIGN_CERTS){
+                // Wrong flags
                 return None;
             }
         }
@@ -210,6 +219,7 @@ mod tests {
             name: "test".to_string(),
             flags: FLAG_SIGN_MESSAGES | FLAG_SIGN_CERTS,
         };
+        assert!(signing_certificate.check_flag(FLAG_SIGN_MESSAGES));
         signing_certificate.signature = Some(root_certificate.sign_data(&signing_certificate.clone_without_signature_and_sk(),
                                                                         HashType::None).unwrap());
         encryption_cert.signature = Some(signing_certificate.sign_data(&encryption_cert.clone_without_signature_and_sk(), HashType::None).unwrap());
@@ -247,6 +257,7 @@ mod tests {
         binder.set_root_certificate(root_certificate.clone());
         assert!(binder.add_signing_certificate(signing_cert.clone()));
         assert!(binder.add_encryption_certificate(encryption_cert.clone()));
+        assert!(signing_cert.check_flag(FLAG_SIGN_MESSAGES));
         binder.add_encryption_certificate(encryption_cert.clone());
         binder.add_signing_certificate(signing_cert.clone());
 
