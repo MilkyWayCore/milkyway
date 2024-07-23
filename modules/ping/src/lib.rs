@@ -1,4 +1,5 @@
 mod responder;
+mod ping;
 
 use colored::Colorize;
 use libmilkyway::message::common::Message;
@@ -38,7 +39,7 @@ impl MilkywayModule for PingModule {
             return;
         }
         let my_id = my_id.unwrap();
-        let transport = service.get_transport();
+        let transport = service.get_sender();
         let responder = Box::new(PingResponder::new(my_id, self.get_id(), 
                                                     transport));
         self.filter_id = Some(service.subscribe_to_messages(MessageFilter::new()
@@ -47,7 +48,7 @@ impl MilkywayModule for PingModule {
     }
 
     fn on_cli_command(&mut self, command: Vec<String>, arguments: Vec<String>) -> CLIStatus {
-        todo!();
+        todo!()
     }
 
     fn on_server_receive(&self, _packet: &Message) { /* stub */ }

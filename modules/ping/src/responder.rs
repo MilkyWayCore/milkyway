@@ -3,7 +3,7 @@ use libmilkyway::message::common::{AsMessage, Message};
 use libmilkyway::message::ping::PongMessage;
 use libmilkyway::message::types::MessageType;
 use libmilkyway::services::transport::TransportServiceListener;
-use libmilkyway::transport::Transport;
+use libmilkyway::transport::{Transport, TransportListener, TransportSender};
 
 ///
 /// A struct which responds to ping requests
@@ -11,21 +11,21 @@ use libmilkyway::transport::Transport;
 pub struct PingResponder{
     source_id: u128,
     module_id: u64,
-    transport: Box<dyn Transport>,
+    sender: Box<dyn TransportSender>
 }
 
 impl PingResponder {
-    pub fn new(source_id: u128, module_id: u64, transport: Box<dyn Transport>) -> PingResponder{
+    pub fn new(source_id: u128, module_id: u64, sender: Box<dyn TransportSender>) -> PingResponder{
         PingResponder{
             source_id,
             module_id,
-            transport,
+            sender,
         }
     }
 }
 
-impl TransportServiceListener for PingResponder{
-    fn on_receive_message(&mut self, message: Message) {
+impl TransportListener for PingResponder{
+    fn on_message(&mut self, message: Message) {
         if message.message_type != MessageType::Ping{
             log::warn!("Received message of not ping type(id={}, module_id={})",
                 message.id, message.module_id);
@@ -34,6 +34,6 @@ impl TransportServiceListener for PingResponder{
         let pong = PongMessage::from_ping_message(&message);
         // We don't actually care if this message ever reaches recepient, so no reason for blocking
         // current thread/coroutine
-        self.transport.send_non_blocking(message.source, pong.as_message());
+        self.sender.send_message(pong.as_message());
     }
 }
