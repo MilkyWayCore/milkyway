@@ -26,6 +26,19 @@ pub struct Message{
 }
 
 impl<'a> Message {
+    pub fn new() -> Message{
+        Message{
+            id: 0,
+            timestamp: 0,
+            message_type: MessageType::Ping,
+            certificate_id: 0,
+            data: None,
+            signature: None,
+            source: 0,
+            destination: 0,
+            module_id: 0,
+        }
+    }
     ///
     /// Builder-like function for setting id of message.
     ///
@@ -121,6 +134,32 @@ impl<'a> Message {
         let mut cloned = self.clone();
         cloned.signature = None;
         cloned
+    }
+
+    ///
+    /// Builder-like function for setting type 
+    ///
+    /// # Arguments
+    /// * message_type: type to set
+    ///
+    /// returns: updated message
+    #[inline]
+    pub fn set_type(&'a mut self, message_type: MessageType) -> &'a Message{
+        self.message_type = message_type;
+        self
+    }
+    
+    ///
+    /// Builder-like function for setting data 
+    /// 
+    /// # Arguments
+    /// * data: data to set
+    /// 
+    /// returns: updated message
+    #[inline]
+    pub fn set_data(&'a mut self, data: Option<Serialized>) -> &'a Message{
+        self.data = data;
+        self
     }
 }
 
