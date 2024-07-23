@@ -1,2 +1,1 @@
-mod channel;
 mod distributor;

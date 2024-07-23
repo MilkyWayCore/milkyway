@@ -1,7 +1,5 @@
-pub mod async_stream;
 pub mod crypto;
 
-use async_trait::async_trait;
 use crate::message::common::Message;
 use crate::serialization::deserializable::Deserializable;
 use crate::serialization::error::SerializationError;

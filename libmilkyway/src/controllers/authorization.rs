@@ -271,6 +271,7 @@ mod tests {
             signing_certificate: signing_cert.clone(),
             signing_chain: vec![],
             signature: None,
+            timestamp: 0,
         };
 
         let signature = signing_cert.sign_data(&message.clone_without_signature(), HashType::None).unwrap();
