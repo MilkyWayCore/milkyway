@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use colored::Colorize;
 use libmilkyway::cli::arguments::parse_arguments;
@@ -7,6 +8,7 @@ use libmilkyway::pki::certificate::{Certificate, FLAG_CLIENT_CERT, FLAG_NO_READ,
 use libmilkyway::pki::hash::HashType;
 use libmilkyway::pki::impls::certificates::falcon1024::Falcon1024Certificate;
 use libmilkyway::pki::impls::keys::falcon1024::generate_falcon1024_keypair;
+use libmilkyway::serialization::deserializable::Deserializable;
 use libmilkyway::serialization::serializable::Serializable;
 use libmilkyway::services::certificate::{CertificateService, CertificateServiceBinder, ROOT_CERTIFICATE_SERIAL};
 use crate::namespaces::root::RootNamespace;
@@ -270,7 +272,35 @@ impl SigningNamespace {
     }
 
     pub fn import(&mut self, arguments: Vec<String>){
-
+        let argmap = parse_arguments(arguments);
+        if !argmap.contains_key("file"){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Argument 'file' is required");
+            return;
+        }
+        //None
+        //Some(_)
+        let argument = argmap.get("file").unwrap();
+        if argument.is_none(){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Argument 'file' requires a value");
+            return;
+        }
+        let file_name = argument.clone().unwrap();
+        let certificate = Falcon1024Certificate::from_file(Path::new(&file_name));
+        if certificate.is_err(){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Can not read a certificate");
+            return;
+        }
+        let certificate = certificate.unwrap();
+        let mut binder = self.cert_binder.lock().unwrap();
+        let result = binder.add_signing_certificate(certificate);
+        if !result{
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Can not add certificate to service");
+            return;
+        }
     }
 
     pub fn sign_file(&mut self, argument: Vec<String>){
@@ -281,12 +311,20 @@ impl SigningNamespace {
 
     }
 
+    #[inline]
+    fn optional_serial_to_string(serial: Option<u128>) ->String{
+        if serial.is_none(){
+            return "X".to_string();
+        }
+        serial.unwrap().to_string()
+    }
     pub fn show(&mut self){
         let result =self.cert_binder.lock().unwrap().get_signing_certificates();
-        let mut table = Table::new(vec!["SERIAL", "NAME", "FLAGS"]);
+        let mut table = Table::new(vec!["SERIAL", "NAME", "FLAGS", "PARENT SERIAL"]);
         for certificate in result{
             table.add_row(vec![&certificate.get_serial().to_string(),
-            &certificate.get_name(), &certificates_flags_to_string(certificate.get_flags())]);
+                               &certificate.get_name(), &certificates_flags_to_string(certificate.get_flags()),
+                               &*Self::optional_serial_to_string(certificate.get_parent_serial())]);
         }
         table.display();
     }
