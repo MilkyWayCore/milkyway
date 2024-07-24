@@ -1,11 +1,14 @@
 use std::collections::HashMap;
+use tokio::select;
 use tokio::sync::mpsc::{Sender, Receiver};
 use libmilkyway::controllers::authorization::AuthorizationController;
 use libmilkyway::message::common::Message;
+use libmilkyway::message::types::MessageType::Pong;
 use libmilkyway::services::transport::{MessageFilter, TransportService};
 use libmilkyway::tokio::{tokio_block_on, tokio_spawn};
 use libmilkyway::transport::{TransportListener, TransportSender};
-
+use crate::listeners::TokioAsyncListener;
+use crate::services::transport::ServiceSubscriptionResponse::{NotSubscribed, OkId};
 
 const CHANNEL_BUFFER_SIZE: usize = 65536;
 
@@ -26,7 +29,7 @@ pub struct TokioTransportServiceImpl{
 ///
 /// An implementation sender for tokio transport service
 ///
-pub struct TokioTransportSenderImpl{
+pub(crate) struct TokioTransportSenderImpl{
     tx: Sender<Message>,
 }
 
@@ -46,19 +49,91 @@ enum ServiceSubscriptionRequest{
     Unsubscribe(u128),
 }
 
+
+#[derive(Debug, Clone)]
 enum ServiceSubscriptionResponse{
     /** Generic Ok response **/
     Ok,
     /** Ok response with ID of subscription **/
     OkId(u128),
+    /** Request to unsubscribe from unexisten filter ID **/
+    NotSubscribed,
 }
 
 struct TokioTransportServiceWorker{
+    last_id: u128,
     listeners: HashMap<u128, Box<dyn TransportListener>>,
+    filters: HashMap<u128, MessageFilter>,
     subscription_ctl_rx: Receiver<ServiceSubscriptionRequest>,
     subscription_ctl_tx: Sender<ServiceSubscriptionResponse>,
     /** Receives messages from modules **/
     message_receiver: Receiver<Message>,
+}
+
+impl TokioTransportServiceWorker {
+    fn handle_subscription(&mut self, request: ServiceSubscriptionRequest) -> ServiceSubscriptionResponse{
+        match request {
+            ServiceSubscriptionRequest::Subscribe(listener) => {
+                self.last_id += 1;
+                let (filter, receiver) = listener;
+                self.listeners.insert(self.last_id, receiver);
+                self.filters.insert(self.last_id, filter);
+                OkId(self.last_id)
+            }
+            ServiceSubscriptionRequest::Unsubscribe(id) => {
+                if !self.listeners.contains_key(&id){
+                    NotSubscribed
+                } else {
+                    self.listeners.remove(&id);
+                    self.filters.remove(&id);
+                    ServiceSubscriptionResponse::Ok
+                }
+            }
+        }
+    }
+
+    fn handle_remote_message(&mut self, message: Message){
+        for (key, listener) in self.listeners.iter_mut(){
+            let filter = self.filters.get(key).expect("What a terrible failure: no filter for listener");
+            if filter.module_id.is_some(){
+                if message.module_id != filter.module_id.unwrap(){
+                    continue;
+                }
+            }
+            if filter.from_id.is_some(){
+                if message.source != filter.from_id.unwrap(){
+                    continue;
+                }
+            }
+            listener.on_message(message.clone());
+        }
+    }
+
+
+    pub async fn run<T: TokioAsyncListener + 'static>(&mut self, mut listener: T){
+        let (listener_tx, mut listener_rx) = tokio::sync::mpsc::channel::<Message>(CHANNEL_BUFFER_SIZE);
+        let (messages_tx, messages_rx) = tokio::sync::mpsc::channel::<Message>(CHANNEL_BUFFER_SIZE);
+        tokio::spawn(async move {
+            listener.run(listener_tx, messages_rx).await;
+        });
+        loop {
+            select! {
+                Some(message) = self.message_receiver.recv() => {
+                    messages_tx.send(message).await.expect("Can not communicate with listener");
+                }
+                Some(message) = self.subscription_ctl_rx.recv() => {
+                    let result = self.handle_subscription(message).clone();
+                    self.subscription_ctl_tx.send(result).await.expect("Can not respond to service");
+                }
+                Some(message) = listener_rx.recv() => {
+                    self.handle_remote_message(message);
+                }
+                else => {
+                    log::error!("No opened receivers!");
+                }
+            }
+        }
+    }
 }
 
 impl TokioTransportServiceImpl{

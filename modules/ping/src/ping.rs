@@ -6,7 +6,8 @@ use libmilkyway::transport::TransportSender;
 pub(crate) fn ping(service: &mut Box<dyn TransportService>, 
                    sender: &mut Box<dyn TransportSender>, 
                    target: u128, timeout: u64){
-    let ping_message = Message::new()
+    let mut message = Message::new();
+    let ping_message = message
         .set_current_timestamp()
         .set_destination(target)
         .set_type(MessageType::Ping);

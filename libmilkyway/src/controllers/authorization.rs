@@ -36,11 +36,11 @@ pub struct AuthorizationController{
 ///
 #[derive(Clone, Serializable, Deserializable)]
 pub struct AuthorizationMessage{
-    encryption_certificate: Kyber1024Certificate,
-    signing_certificate: Falcon1024Certificate,
-    signing_chain: Vec<Falcon1024Certificate>,
-    timestamp: u128,
-    signature: Option<Signature>,
+    pub encryption_certificate: Kyber1024Certificate,
+    pub signing_certificate: Falcon1024Certificate,
+    pub signing_chain: Vec<Falcon1024Certificate>,
+    pub timestamp: u128,
+    pub signature: Option<Signature>,
 }
 
 

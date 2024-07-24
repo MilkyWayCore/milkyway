@@ -119,7 +119,7 @@ impl<'a> Message {
     /// * destination: u128: ID of destination
     ///
     #[inline]
-    pub fn set_destination(&'a mut self, destination: u128) -> &'a Message{
+    pub fn set_destination(&'a mut self, destination: u128) -> &'a mut Message{
         self.destination = destination;
         self
     }

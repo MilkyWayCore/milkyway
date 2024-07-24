@@ -26,14 +26,14 @@ impl<T: AsyncReadExt + AsyncWriteExt + Sync + Send + Unpin> TokioStreamTransport
         }
     }
 
-    fn apply_transform(&self, mut data: Serialized) -> Serialized{
+    pub fn apply_transform(&self, mut data: Serialized) -> Serialized{
         for transformer in &self.transformers{
             data = transformer.transform(&data);
         }
         data
     }
 
-    fn apply_detransform(&self, mut data: Serialized) -> Option<Serialized>{
+    pub fn apply_detransform(&self, mut data: Serialized) -> Option<Serialized>{
         for transformer in self.transformers.iter().rev(){
             let data_result = transformer.detransform(&data);
             if data_result.is_err(){
@@ -47,7 +47,7 @@ impl<T: AsyncReadExt + AsyncWriteExt + Sync + Send + Unpin> TokioStreamTransport
     }
     
     #[inline]
-    async fn send_raw(&mut self, data: Serialized) -> Result<usize, tokio::io::Error> {
+    pub async fn send_raw(&mut self, data: Serialized) -> Result<usize, tokio::io::Error> {
         let data = self.apply_transform(data);
         let size = data.len();
         let status = self.stream.write(&size.serialize()).await;
@@ -57,7 +57,7 @@ impl<T: AsyncReadExt + AsyncWriteExt + Sync + Send + Unpin> TokioStreamTransport
         self.stream.write(&data).await
     }
 
-    async fn receive_raw(&mut self, timeout: Option<u64>) -> Option<Serialized> {
+    pub async fn receive_raw(&mut self, timeout: Option<u64>) -> Option<Serialized> {
         let mut data_size_buf: Serialized = Serialized::with_capacity(size_of::<usize>());
         for _ in 0..size_of::<usize>(){
             data_size_buf.push(0);
@@ -101,7 +101,7 @@ impl<T: AsyncReadExt + AsyncWriteExt + Sync + Send + Unpin> TokioStreamTransport
     }
 
     #[inline]
-    fn add_transformer<'a>(&'a mut self, transformer: Box<dyn TransportTransformer>) -> &'a Self {
+    pub fn add_transformer<'a>(&'a mut self, transformer: Box<dyn TransportTransformer>) -> &'a Self {
         self.transformers.push(transformer);
         self
     }
