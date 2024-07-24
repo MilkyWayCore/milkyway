@@ -137,14 +137,16 @@ impl CertificateService for AsyncCertificateServiceImpl {
                 println!("verify {:?} against {:?}", current_cert.get_serial(), root.get_serial());
                 return root.verify_signature(&current_cert.clone_without_signature_and_sk(), &signature);
             }
-            let parent_cert_result = self.get_signing_certificate(current_serial);
+            let parent_cert_result = self.get_signing_certificate(parent_serial);
             if parent_cert_result.is_none(){
                 // No such certificate
+                println!("Can not find parent certificate: none parent from {:?}", parent_serial);
                 return false;
             }
             let parent_cert = parent_cert_result.unwrap();
             if !parent_cert.check_flag(FLAG_SIGN_CERTS){
                 // Can not sign other certificates
+                println!("Parent can not sign");
                 return false;
             }
             let signature_result = current_cert.get_signature();
