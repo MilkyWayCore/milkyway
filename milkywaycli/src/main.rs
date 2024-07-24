@@ -1,4 +1,3 @@
-pub mod services;
 mod bus;
 mod configuration;
 mod cli;
