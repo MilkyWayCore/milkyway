@@ -1,4 +1,5 @@
 pub mod crypto;
+mod async_stream;
 
 use crate::message::common::Message;
 use crate::serialization::deserializable::Deserializable;
