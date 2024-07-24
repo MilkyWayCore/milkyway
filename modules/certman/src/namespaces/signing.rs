@@ -23,7 +23,7 @@ impl SigningNamespace {
         }
     }
 
-    fn generate_signed_certificate(&mut self, binder: &mut Box<CertificateServiceBinder>, serial_number: u128,
+    fn generate_signed_certificate(&self, binder: &mut Box<CertificateServiceBinder>, serial_number: u128,
                                    parent_serial_number: u128, /* Serial number of certificate to sign with */
                                    name: String, flags: u128) -> Result<Falcon1024Certificate, &'static str>{
         if parent_serial_number==ROOT_CERTIFICATE_SERIAL{
