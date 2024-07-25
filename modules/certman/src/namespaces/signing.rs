@@ -12,7 +12,7 @@ use libmilkyway::serialization::deserializable::Deserializable;
 use libmilkyway::serialization::serializable::Serializable;
 use libmilkyway::services::certificate::{CertificateService, CertificateServiceBinder, ROOT_CERTIFICATE_SERIAL};
 use crate::namespaces::root::RootNamespace;
-use crate::utils::certificates_flags_to_string;
+use crate::utils::{certificates_flags_to_string, optional_serial_to_string};
 
 pub struct SigningNamespace{
     cert_binder: Arc<Mutex<Box<CertificateServiceBinder>>>,
@@ -311,20 +311,14 @@ impl SigningNamespace {
 
     }
 
-    #[inline]
-    fn optional_serial_to_string(serial: Option<u128>) ->String{
-        if serial.is_none(){
-            return "X".to_string();
-        }
-        serial.unwrap().to_string()
-    }
+
     pub fn show(&mut self){
         let result =self.cert_binder.lock().unwrap().get_signing_certificates();
         let mut table = Table::new(vec!["SERIAL", "NAME", "FLAGS", "PARENT SERIAL"]);
         for certificate in result{
             table.add_row(vec![&certificate.get_serial().to_string(),
                                &certificate.get_name(), &certificates_flags_to_string(certificate.get_flags()),
-                               &*Self::optional_serial_to_string(certificate.get_parent_serial())]);
+                               &*optional_serial_to_string(certificate.get_parent_serial())]);
         }
         table.display();
     }

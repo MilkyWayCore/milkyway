@@ -28,3 +28,10 @@ pub fn certificates_flags_to_string(flags: u128) -> String{
     }
     result
 }
+#[inline]
+pub fn optional_serial_to_string(serial: Option<u128>) ->String{
+    if serial.is_none(){
+        return "X".to_string();
+    }
+    serial.unwrap().to_string()
+}
