@@ -1,4 +1,4 @@
-use crate::actor::binder::{Binder, BinderChannel, BinderMessage, BinderServiceHandler};
+use crate::actor::binder::{Binder, BinderChannel, BinderChannelProvider, BinderMessage, BinderServiceHandler};
 use crate::actor::binder::coroutine::BinderAsyncService;
 use crate::pki::impls::certificates::falcon1024::{Falcon1024Certificate, Falcon1024RootCertificate};
 use crate::pki::impls::certificates::kyber1024::Kyber1024Certificate;
@@ -160,6 +160,12 @@ pub enum CertificateServiceBinderResponse{
     Kyber1024Certs(Vec<Kyber1024Certificate>),
     Status(bool),
 }
+
+/// 
+/// A binder channel provider for certificate service
+/// 
+pub type CertificateServiceBinderProvider = dyn BinderChannelProvider<BinderMessage<CertificateServiceBinderRequest,
+    CertificateServiceBinderResponse>>;
 
 ///
 /// A binder type for CertificateServiceBinder

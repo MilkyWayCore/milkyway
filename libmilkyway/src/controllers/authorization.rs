@@ -183,6 +183,7 @@ impl AuthorizationController {
 
 #[cfg(test)]
 mod tests {
+    use crate::actor::binder::BinderChannelProvider;
     use super::*;
     use crate::pki::certificate::{Certificate, FLAG_SIGN_CERTS, FLAG_SIGN_MESSAGES};
     use crate::pki::hash::HashType;

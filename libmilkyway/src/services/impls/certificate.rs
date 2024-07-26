@@ -107,7 +107,6 @@ impl CertificateService for AsyncCertificateServiceImpl {
     }
 
     fn verify_signing_certificate(&mut self, cert: &Falcon1024Certificate) -> bool {
-        let mut current_serial = cert.get_serial();
         let mut current_cert = cert.clone();
         loop{
             let parent_serial = current_cert.get_parent_serial();
@@ -160,7 +159,6 @@ impl CertificateService for AsyncCertificateServiceImpl {
                 // One of certificates is tampered
                 return false;
             }
-            current_serial = parent_serial;
             current_cert = parent_cert;
         }
     }

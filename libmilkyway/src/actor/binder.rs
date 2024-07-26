@@ -39,6 +39,19 @@ pub trait BinderChannel<T>: Send + Sync where T: Send + Sync{
     fn is_alive(&self) -> bool;
 }
 
+
+///
+/// Provides binder channel for specified message type
+/// 
+pub trait BinderChannelProvider<T>: Send + Sync where T: Send + Sync{
+    ///
+    /// Creates new service binder
+    /// 
+    /// returns: Channel of communication with service
+    /// 
+    fn bind(&mut self) -> Box<dyn BinderChannel<T>>;
+}
+
 ///
 /// A standard message with querying and responding to Binder requests
 ///

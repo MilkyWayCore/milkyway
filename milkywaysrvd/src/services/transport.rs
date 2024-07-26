@@ -113,8 +113,9 @@ impl TokioTransportServiceWorker {
     pub async fn run<T: TokioAsyncListener + 'static>(&mut self, mut listener: T){
         let (listener_tx, mut listener_rx) = tokio::sync::mpsc::channel::<Message>(CHANNEL_BUFFER_SIZE);
         let (messages_tx, messages_rx) = tokio::sync::mpsc::channel::<Message>(CHANNEL_BUFFER_SIZE);
+        let (peer_id_tx, mut peer_id_rx) = tokio::sync::mpsc::channel::<u128>(CHANNEL_BUFFER_SIZE);
         tokio::spawn(async move {
-            listener.run(listener_tx, messages_rx).await;
+            listener.run(listener_tx, messages_rx, peer_id_tx).await;
         });
         loop {
             select! {

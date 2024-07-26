@@ -13,6 +13,7 @@ pub(crate) trait TokioAsyncListener: Send + Sync{
     /// # Arguments
     /// * tx: transmitter to put received messages
     /// * rx: receiver of messages to be sent
+    /// * peer_id_tx: sender for new peer IDs
     ///
-    async fn run(&mut self, tx: Sender<Message>, rx: Receiver<Message>);
+    async fn run(&mut self, tx: Sender<Message>, rx: Receiver<Message>, peer_id_tx: Sender<u128>);
 }
