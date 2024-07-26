@@ -56,4 +56,13 @@ impl ServerConfiguration {
         }
         Some(Path::new(str_path.unwrap()))
     }
+    
+    ///
+    /// Gets a listener address
+    /// 
+    /// returns: Option<String>: a listener bind address
+    ///
+    pub fn get_listener_address(&self) -> Option<String>{
+        todo!()
+    }
 }

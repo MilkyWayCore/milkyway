@@ -25,7 +25,7 @@ use crate::listeners::TokioAsyncListener;
 const CHUNK_SIZE: usize = 1498;
 
 /** How many milliseconds connection may take. This constant SHOULD be module-specific as 
-    depending on protocl the value of connection time may differ **/
+    depending on protocol the value of connection time may differ **/
 const HANDLE_START_GAP_MS: u128 = 1000;
 
 pub(crate) struct TokioTcpListener {

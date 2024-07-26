@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex};
+use libmilkyway::actor::binder::BinderChannelProvider;
 use libmilkyway::actor::binder::coroutine::BinderAsyncService;
 use libmilkyway::module::{HostType, ModuleDataBus};
 use libmilkyway::services::certificate::{CertificateAsyncService, CertificateServiceBinder};

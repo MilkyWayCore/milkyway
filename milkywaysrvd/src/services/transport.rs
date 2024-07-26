@@ -1,29 +1,30 @@
 use std::collections::HashMap;
 use tokio::select;
 use tokio::sync::mpsc::{Sender, Receiver};
+use libmilkyway::actor::binder::{AsyncBinderChannelImpl, BinderChannel, BinderMessage};
 use libmilkyway::controllers::authorization::AuthorizationController;
 use libmilkyway::message::common::Message;
-use libmilkyway::message::types::MessageType::Pong;
 use libmilkyway::services::transport::{MessageFilter, TransportService};
-use libmilkyway::tokio::{tokio_block_on, tokio_spawn};
+use libmilkyway::tokio::tokio_spawn;
 use libmilkyway::transport::{TransportListener, TransportSender};
+use libmilkyway::unwrap_variant;
 use crate::listeners::TokioAsyncListener;
 use crate::services::transport::ServiceSubscriptionResponse::{NotSubscribed, OkId};
 
 const CHANNEL_BUFFER_SIZE: usize = 65536;
 
+
+/** A channel to communicate with binder **/
+type WorkerBinder = dyn BinderChannel<BinderMessage<ServiceSubscriptionRequest, ServiceSubscriptionResponse>>;
+
 ///
 /// A tokio-base transport service
 ///
 pub struct TokioTransportServiceImpl{
-    /** A controller of authorization procedure **/
-    authorization_controller: AuthorizationController,
-    /** Receiver of all messages **/
-    message_receiver: Receiver<Message>,
     /** Sender to message receiver **/
     message_sender: Sender<Message>,
-    /** Sender to subscripton control **/
-    subscription_ctl_sender: Sender<ServiceSubscriptionRequest>,
+    /** Binder to communicate with worker **/
+    worker_binder: Box<WorkerBinder>,
 }
 
 ///
@@ -50,7 +51,7 @@ enum ServiceSubscriptionRequest{
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum ServiceSubscriptionResponse{
     /** Generic Ok response **/
     Ok,
@@ -61,16 +62,27 @@ enum ServiceSubscriptionResponse{
 }
 
 struct TokioTransportServiceWorker{
+    /** ID of last subscription **/
     last_id: u128,
+    /** Map of listener ID to functions **/
     listeners: HashMap<u128, Box<dyn TransportListener>>,
+    /** Map of listener ID to filters **/
     filters: HashMap<u128, MessageFilter>,
-    subscription_ctl_rx: Receiver<ServiceSubscriptionRequest>,
-    subscription_ctl_tx: Sender<ServiceSubscriptionResponse>,
+    binder: AsyncBinderChannelImpl<BinderMessage<ServiceSubscriptionRequest, ServiceSubscriptionResponse>>,
     /** Receives messages from modules **/
     message_receiver: Receiver<Message>,
 }
 
 impl TokioTransportServiceWorker {
+    pub(crate) fn new(binder: AsyncBinderChannelImpl<BinderMessage<ServiceSubscriptionRequest, ServiceSubscriptionResponse>>, receiver: Receiver<Message>) -> Self{
+        TokioTransportServiceWorker{
+            last_id: 0,
+            listeners: HashMap::new(),
+            filters: HashMap::new(),
+            message_receiver: receiver,
+            binder,
+        }
+    }
     fn handle_subscription(&mut self, request: ServiceSubscriptionRequest) -> ServiceSubscriptionResponse{
         match request {
             ServiceSubscriptionRequest::Subscribe(listener) => {
@@ -122,12 +134,16 @@ impl TokioTransportServiceWorker {
                 Some(message) = self.message_receiver.recv() => {
                     messages_tx.send(message).await.expect("Can not communicate with listener");
                 }
-                Some(message) = self.subscription_ctl_rx.recv() => {
+                Some(message) = self.binder.rx.recv() => {
+                    let message = unwrap_variant!(message, BinderMessage::Query);
                     let result = self.handle_subscription(message).clone();
-                    self.subscription_ctl_tx.send(result).await.expect("Can not respond to service");
+                    self.binder.tx.send(BinderMessage::Response(result)).await.expect("Can not respond to service");
                 }
                 Some(message) = listener_rx.recv() => {
                     self.handle_remote_message(message);
+                }
+                Some(_) = peer_id_rx.recv() => {
+                    /* stub: we need to tell nameservice about this */
                 }
                 else => {
                     log::error!("No opened receivers!");
@@ -138,32 +154,37 @@ impl TokioTransportServiceWorker {
 }
 
 impl TokioTransportServiceImpl{
-    pub fn run(authorization_controller: AuthorizationController) -> TokioTransportServiceImpl{
+    pub fn run<T>(listener: T) -> TokioTransportServiceImpl where T: TokioAsyncListener + 'static{
         let (tx, rx) = tokio::sync::mpsc::channel(CHANNEL_BUFFER_SIZE);
-        let (subscription_tx, subscription_rx) = tokio::sync::mpsc::channel(CHANNEL_BUFFER_SIZE);
+        let (local_binder, remote_binder) =
+            AsyncBinderChannelImpl::<BinderMessage<ServiceSubscriptionRequest, ServiceSubscriptionResponse>>::duplex(CHANNEL_BUFFER_SIZE);
+        let mut worker = TokioTransportServiceWorker::new(remote_binder, rx);
+        tokio_spawn(async move {
+            worker.run(listener).await;
+        });
         TokioTransportServiceImpl{
-            authorization_controller,
-            message_receiver: rx,
             message_sender: tx,
-            subscription_ctl_sender: subscription_tx,
+            worker_binder: Box::new(local_binder),
         }
     }
 }
 
 impl TransportService for TokioTransportServiceImpl {
     fn subscribe_to_messages(&mut self, filter: &MessageFilter, listener: Box<dyn TransportListener>) -> u128 {
-        tokio_block_on(async move {
-            self.subscription_ctl_sender.send(ServiceSubscriptionRequest::Subscribe((filter.clone(), listener)))
-                .await.expect("Can not send subscribe request");
-        });
-        todo!()
+        self.worker_binder.send_message(
+            BinderMessage::Query(ServiceSubscriptionRequest::Subscribe((filter.clone(), listener))));
+        let response =
+            unwrap_variant!(self.worker_binder.receive_message(), BinderMessage::Response);
+        unwrap_variant!(response, ServiceSubscriptionResponse::OkId)
     }
 
     fn unsubscribe(&mut self, filter_id: u128) {
-        tokio_block_on(async move { 
-            self.subscription_ctl_sender.send(ServiceSubscriptionRequest::Unsubscribe(filter_id))
-                .await.expect("Can not send unsubscribe request")
-        });
+        self.worker_binder.send_message(BinderMessage::Query(ServiceSubscriptionRequest::Unsubscribe(filter_id)));
+        let inner_variant = unwrap_variant!(self.worker_binder.receive_message(),
+            BinderMessage::Response);
+        if inner_variant != ServiceSubscriptionResponse::Ok{
+            log::error!("Unexpected response for unsubscribe request: {:?}", inner_variant);
+        }
     }
 
     fn get_sender(&mut self) -> Box<dyn TransportSender> {
