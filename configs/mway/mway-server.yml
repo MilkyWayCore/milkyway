@@ -1,0 +1,20 @@
+# A configuration for MWay CLI
+---
+#
+# Specifies path to where we store data
+#
+storage_path: /tmp/mway_test
+
+#
+# Path from where we load modules
+#
+modules_path: /tmp/mway_modules
+
+#
+# Listening configuration
+#
+listener:
+  #
+  # Bind address for TCP listener
+  #
+  address: "127.0.0.1:2804"

@@ -39,6 +39,19 @@ pub trait BinderChannel<T>: Send + Sync where T: Send + Sync{
     fn is_alive(&self) -> bool;
 }
 
+
+///
+/// Provides binder channel for specified message type
+/// 
+pub trait BinderChannelProvider<T>: Send + Sync where T: Send + Sync{
+    ///
+    /// Creates new service binder
+    /// 
+    /// returns: Channel of communication with service
+    /// 
+    fn bind(&mut self) -> Box<dyn BinderChannel<T>>;
+}
+
 ///
 /// A standard message with querying and responding to Binder requests
 ///
@@ -127,11 +140,6 @@ impl<Q, R> Binder<Q, R> for dyn BinderChannel<BinderMessage<Q, R>>
     }
 }
 
-pub trait AsBoxedBinder<Q, R>
-    where Q: Send + Sync, R: Send + Sync{
-    fn as_boxed_binder(&self) -> impl Binder<Q, R>;
-}
-
 ///
 /// Asynchronous binder channel
 ///
@@ -146,9 +154,37 @@ pub struct AsyncBinderChannelImpl<T: Send + Sync>{
 }
 
 impl<T> AsyncBinderChannelImpl<T> where T: Send + Sync {
+    ///
+    /// Creates a new AsyncBinderChannelImpl with given tx, rx and signal channel
+    /// 
+    /// # Arguments
+    /// * signal_tx: signal channel transmit
+    /// * tx: Channel transmit
+    /// * rx: Channel receiver
+    /// 
+    /// returns: instance of AsyncBinderChannelImpl
+    /// 
+    #[inline]
     pub fn new(signal_tx: Option<Sender<bool>>, tx: Sender<T>, rx: Receiver<T>) -> Self {
         Self { signal_tx, tx, rx }
     }
+    
+    ///
+    /// Generates a duplex channel of two binders:
+    /// *  One binding the service to remote
+    /// *  Another binding remote to service
+    /// 
+    /// # Arguments
+    /// * buf_size: Size of buffer for tokio MPSC channel
+    /// 
+    /// return: pair of channels one for service other for remot
+    /// 
+    pub fn duplex(buf_size: usize) -> (Self, Self){
+        let (tx1, rx2) = tokio::sync::mpsc::channel::<T>(buf_size);
+        let (tx2, rx1) = tokio::sync::mpsc::channel::<T>(buf_size);
+        (Self::new(None, tx1, rx1), Self::new(None, tx2, rx2))
+    }
+    
 
     pub fn as_binder_channel(&mut self) -> &mut dyn BinderChannel<T>{
         self

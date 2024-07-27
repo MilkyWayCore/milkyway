@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
-use crate::actor::binder::{AsyncBinderChannelImpl, BinderChannel, BinderMessage, BinderServiceHandler};
+use crate::actor::binder::{AsyncBinderChannelImpl, BinderChannel, BinderChannelProvider, BinderMessage, BinderServiceHandler};
 use crate::actor::binder::coroutine::BinderAsyncServiceMessage::{BindRequest, BindResponse, ControlTx, SignalTx};
 use crate::tokio::{tokio_block_on, tokio_spawn};
 use crate::unwrap_variant;
@@ -121,13 +121,11 @@ impl<Q, R> BinderAsyncService<Q, R> where Q: Send + Sync + 'static, R: Send + Sy
         }
 
     }
+}
 
-    ///
-    /// Creates new binder channel and returns it to caller
-    ///
-    /// * returns: Implementation of async binder channel
-    ///
-    pub fn bind(&mut self) -> Box<dyn BinderChannel<BinderMessage<Q, R>>>{
+impl<Q, R> BinderChannelProvider<BinderMessage<Q, R>> for BinderAsyncService<Q, R> 
+    where Q: Send + Sync + 'static, R: Send + Sync +'static{
+    fn bind(&mut self) -> Box<dyn BinderChannel<BinderMessage<Q, R>>>{
         let (service_tx, local_rx) = channel::<BinderMessage<Q,R>>(ASYNC_BINDER_SERVICE_CHANNEL_BUFSIZE);
         let ctl_tx = self.control_tx.clone().unwrap();
         tokio_block_on(async{

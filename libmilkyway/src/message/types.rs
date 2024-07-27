@@ -46,4 +46,8 @@ pub enum MessageType{
     /// Acknowledged, tells that some message was received. MUST NOT be sent by server.
     /// 
     Ack,
+    ///
+    /// Set peer ID in the network
+    /// 
+    SetPeerID
 }

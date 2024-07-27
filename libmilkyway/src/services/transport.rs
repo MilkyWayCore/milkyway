@@ -82,14 +82,16 @@ pub trait TransportService: Send + Sync{
     /// returns: Box-ed TransportSender trait object
     fn get_sender(&mut self) -> Box<dyn TransportSender>;
     
+    
     ///
-    /// Blocks current coroutine thread and waits for message from certain peer
+    /// Sends a message using built-in sender
     /// 
     /// # Arguments
-    /// * source: u128: source from which we wait for message
-    /// * timeout: Option<u64>: optional timeout
+    /// * message: Message: message to be sent
     /// 
-    /// returns: Some message or none if time-out waiting it.
-    /// 
-    fn blocking_recv(&mut self, source: u128, timeout: Option<u64>) -> Option<Message>;
+    #[inline]
+    fn send_message(&mut self, message: Message){
+        let mut sender = self.get_sender();
+        sender.send_message(message);
+    }
 }

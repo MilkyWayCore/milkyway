@@ -119,7 +119,7 @@ impl<'a> Message {
     /// * destination: u128: ID of destination
     ///
     #[inline]
-    pub fn set_destination(&'a mut self, destination: u128) -> &'a Message{
+    pub fn set_destination(&'a mut self, destination: u128) -> &'a mut Message{
         self.destination = destination;
         self
     }
@@ -144,7 +144,7 @@ impl<'a> Message {
     ///
     /// returns: updated message
     #[inline]
-    pub fn set_type(&'a mut self, message_type: MessageType) -> &'a Message{
+    pub fn set_type(&'a mut self, message_type: MessageType) -> &'a mut Message{
         self.message_type = message_type;
         self
     }
@@ -157,7 +157,7 @@ impl<'a> Message {
     /// 
     /// returns: updated message
     #[inline]
-    pub fn set_data(&'a mut self, data: Option<Serialized>) -> &'a Message{
+    pub fn set_data(&'a mut self, data: Option<Serialized>) -> &'a mut Message{
         self.data = data;
         self
     }
