@@ -462,7 +462,21 @@ impl SigningNamespace {
          */
     }
 
-    pub fn verify_file_signature(&mut self, arguments: Vec<String>){
+    pub fn verify_file_signature(&mut self, argument: Vec<String>){
+        let argmap = parse_arguments(argument);
+        if !argmap.contains_key("file"){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Argument 'file' is required");
+            return;
+        }
+        let file_name = argmap.get("file").unwrap();
+        if file_name.is_none(){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Argument 'file' requires a value");
+            return;
+        }
+        let file_name = file_name.clone().unwrap();
+        let signature_file = argmap.get("signature-file").unwrap();
 
     }
 
