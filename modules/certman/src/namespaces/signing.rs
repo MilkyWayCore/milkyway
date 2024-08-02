@@ -308,7 +308,7 @@ impl SigningNamespace {
     }
 
     // sign-file file=/tmp/satanic_kitten_orgy
-    pub fn sign_file(&mut self, arguments: Vec<String>){
+    pub fn sign_file(&mut self, arguments: Vec<String>) {
         let argmap = parse_arguments(arguments);
         if !argmap.contains_key("signature-file") {
             println!("{} {}", "error:".red().bold().underline(),
@@ -321,18 +321,18 @@ impl SigningNamespace {
                      "Argument 'signature-file' requires a value");
             return;
         }
-    // use std::fs::File;
-            // use std::io::Write;
-            //
-            // fn main() -> std::io::Result<()> {
-            //     // Create a file named "example.txt"
-            //     let mut file = File::create("example.txt")?;
-            //
-            //     // Write some data to the file
-            //     file.write_all(b"Hello, world!")?;
-            //
-            //     Ok(())
-            // }
+        // use std::fs::File;
+        // use std::io::Write;
+        //
+        // fn main() -> std::io::Result<()> {
+        //     // Create a file named "example.txt"
+        //     let mut file = File::create("example.txt")?;
+        //
+        //     // Write some data to the file
+        //     file.write_all(b"Hello, world!")?;
+        //
+        //     Ok(())
+        // }
         let mut signature_file = File::create(signature_file);
         if signature_file.is_err() {
             println!("{} {}", "error:".red().bold().underline(),
@@ -340,19 +340,19 @@ impl SigningNamespace {
             return;
         }
         let mut signature_file = signature_file.unwrap();
-        if !argmap.contains_key("file"){
+        if !argmap.contains_key("file") {
             println!("{} {}", "error:".red().bold().underline(),
                      "Argument 'file' is required");
             return;
         }
         let file = argmap.get("file").unwrap();
-        if file.is_none(){
+        if file.is_none() {
             println!("{} {}", "error:".red().bold().underline(),
                      "Argument 'file' requires a value");
             return;
         }
         let file = File::open(file.clone().unwrap());
-        if file.is_err(){
+        if file.is_err() {
             println!("{} {}", "error:".red().bold().underline(),
                      "Can not open file");
             return;
@@ -412,44 +412,52 @@ impl SigningNamespace {
                 return;
             }
             let signature = signature.unwrap();
-            if signature_file.write_all(signature.serialize()).is_err(){
-                println!("{} {}", "error:".red().bold().underline(),
-                         "Can not write signature file");
-                return;
+            let serialized_signature = signature.serialize();
+            let serialized_signature_size = serialized_signature.len();
+            if signature_file.write_all(serialized_signature_size.serialize()).is_err() {
+                if signature_file.write_all(signature.serialize()).is_err() {
+                    println!("{} {}", "error:".red().bold().underline(),
+                             "Can not write signature file");
+                    return;
+                }
+                if signature_file.write_all(signature.serialize()).is_err() {
+                    println!("{} {}", "error:".red().bold().underline(),
+                             "Can not write signature file");
+                    return;
+                }
             }
-        }
 
-        //chunks
-        //reading chunk by chunk
-        //use std::fs::File;
-        // use std::io::{self, Read, BufReader};
-        //
-        // fn main() -> io::Result<()> {
-        //     // Open the file in read-only mode
-        //     let file = File::open("path/to/your/file.txt").unwrap();
-        //     let mut reader = BufReader::new(file);
-        //
-        //     // Define the size of each chunk
-        //     let chunk_size = 1024;
-        //     let mut buffer = vec![0; chunk_size];
-        //
-        //     loop {
-        //         // Read a chunk of the file
-        //         let bytes_read = reader.read(&mut buffer).unwrap();
-        //
-        //         // If no more bytes are read, we've reached the end of the file
-        //         if bytes_read == 0 {
-        //             break;
-        //         }
-        //
-        //         // Process the chunk (here we simply print it as a string)
-        //         let data = &buffer[..bytes_read];
-        //     }
-        //
-        //     Ok(())
-        // }
+            //chunks
+            //reading chunk by chunk
+            //use std::fs::File;
+            // use std::io::{self, Read, BufReader};
+            //
+            // fn main() -> io::Result<()> {
+            //     // Open the file in read-only mode
+            //     let file = File::open("path/to/your/file.txt").unwrap();
+            //     let mut reader = BufReader::new(file);
+            //
+            //     // Define the size of each chunk
+            //     let chunk_size = 1024;
+            //     let mut buffer = vec![0; chunk_size];
+            //
+            //     loop {
+            //         // Read a chunk of the file
+            //         let bytes_read = reader.read(&mut buffer).unwrap();
+            //
+            //         // If no more bytes are read, we've reached the end of the file
+            //         if bytes_read == 0 {
+            //             break;
+            //         }
+            //
+            //         // Process the chunk (here we simply print it as a string)
+            //         let data = &buffer[..bytes_read];
+            //     }
+            //
+            //     Ok(())
+            // }
 
-        /*
+            /*
         File: Kuzya, Watson, Murczyk, Pusheen, Fintus
         Buffer: [_, _]
         read(File) -> 2
@@ -460,6 +468,7 @@ impl SigningNamespace {
         [Fintus, _] -> szpital
         read(File) -> 0
          */
+        }
     }
 
     pub fn verify_file_signature(&mut self, argument: Vec<String>){
@@ -476,8 +485,32 @@ impl SigningNamespace {
             return;
         }
         let file_name = file_name.clone().unwrap();
+        if !argmap.contains_key("signature-file"){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Argument 'signature-file' is required");
+            return;
+        }
         let signature_file = argmap.get("signature-file").unwrap();
-
+        if signature_file.is_none(){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Argument 'signature-file' requires a value");
+            return;
+        }
+        let mut signature_file = File::open(signature_file.clone().unwrap());
+        let mut file = File::open(file_name);
+        if signature_file.is_err(){
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Can not open signature-file");
+            return;
+        }
+        let signature_file = signature_file.unwrap();
+        if file.is_err() {
+            println!("{} {}", "error:".red().bold().underline(),
+                     "Can not open file");
+            return;
+        }
+        let file = file.unwrap();
+        
     }
 
 
