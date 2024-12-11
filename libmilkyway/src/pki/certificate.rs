@@ -32,7 +32,7 @@ pub enum CertificateType{
 ///
 /// A PKI Certificate base trait
 ///
-pub trait Certificate<PK: CryptoKey, SK: CryptoKey>: Serializable + Deserializable{
+pub trait  Certificate<PK: CryptoKey, SK: CryptoKey>: Serializable + Deserializable{
     ///
     /// Gets type of certificate
     ///

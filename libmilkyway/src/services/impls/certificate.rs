@@ -178,6 +178,15 @@ impl CertificateService for AsyncCertificateServiceImpl {
         }
         let signature = signature.unwrap();
         let parent = self.get_signing_certificate(parent_id.unwrap());
+        if parent_id.unwrap() == 0{
+            let parent = self.get_root_certificate();
+            if parent.is_none(){
+                // No root certificate
+                return false;
+            }
+            let parent = parent.unwrap();
+            return parent.verify_signature(&cert.clone_without_signature_and_sk(), &signature);
+        }
         if parent.is_none(){
             // No such signing certificate
             println!("Orpahned: parent lost");
